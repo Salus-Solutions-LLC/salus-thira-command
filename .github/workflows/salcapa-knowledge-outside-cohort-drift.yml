@@ -247,7 +247,7 @@ jobs:
           LOG_EXIT=0
           az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --execution "$EXECUTION_NAME" --container salcapa-outdrift --tail 300 --format text --only-show-errors > /tmp/task-knowledge-search.log 2>&1 || LOG_EXIT=$?
           echo "TASK_KNOWLEDGE_LOG_FETCH_EXIT=$LOG_EXIT"
-          grep -E '^.*(TASK_KNOWLEDGE|BASELINE|STABILITY|POSTSEARCH|RECOVERY|REMEDIATION|PREFLIGHT|BLOCKER|INVENTORY_RECON)_[A-Z0-9_]+=.*$' /tmp/task-knowledge-search.log || true
+          grep -E '^.*(TASK_KNOWLEDGE|BASELINE|STABILITY|POSTSEARCH|RECOVERY|REMEDIATION|PREFLIGHT|BLOCKER|INVENTORY_RECON|OUTSIDE_COHORT|OUTSIDE_DRIFT)_[A-Z0-9_]+=.*$' /tmp/task-knowledge-search.log || true
           test "$LOG_EXIT" = "0"
           python tools/validate_knowledge_outside_cohort_drift.py --verify-log /tmp/task-knowledge-search.log
           test "$WAIT_EXIT" = "0"

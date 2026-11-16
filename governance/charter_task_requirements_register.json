@@ -10,7 +10,7 @@
   ],
   "sources": {
     "AGENTS.md": "a15ceed9ecc02e98e0a22d7f3d0ca2b4291f74009a2084c6990df15fb4938ebe",
-    "APPROVED_ARTIFACTS.md": "eec16795ebe49ff97893df73915fe640e2656cb0f57ce43276e337aed522a399",
+    "APPROVED_ARTIFACTS.md": "41dcf82bb6a8b743ad15b550b04e8753c6c7a51f91893e12995b25bd448b8c86",
     "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md": "8c2b485d105fff0403e15c17c864f9b3b351988cf7ff189e36f970ddad6fa76d",
     "SALUS_ASSESSMENT_REPORT_PURPOSE_AND_EDITORIAL_STANDARD.md": "da3798e4e66518e80e99b221601072268299c606cd7cf14cf3c5cecca37950b4",
     "SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md": "e1c08668dfec2b175d6730f105980c07e9e96484223df82d1edad92d9d3af804",
@@ -176,11 +176,11 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-6ba24354a2acb6bd258c7442",
+      "id": "REQ-a028564bae1f871ef490b379",
       "source": "APPROVED_ARTIFACTS.md",
       "line": 5,
       "section": "Salus Solutions — Approved Artifact Register",
-      "text_sha256": "de3b0c7dffe703a0d12aa15b6adcd2b17ff6c5ad802619441438ac87323166ff",
+      "text_sha256": "652565e96f567d4e90ebf7816b16812b30d84598130e674e75be1edffc096de6",
       "decision_ids": []
     },
     {
@@ -31411,5 +31411,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "6525b3614254bdbc2d0eb87efa80172c280e8ee25311efe0ce62792ac8cc9c72"
+  "register_sha256": "76d3c08be58ef04f3eb52259a0e0870b58ed03204a0c5bc1648a132c6fc85d2f"
 }

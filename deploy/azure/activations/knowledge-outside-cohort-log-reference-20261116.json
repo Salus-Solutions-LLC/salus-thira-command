@@ -1,0 +1,684 @@
+{
+  "schema_version": 1,
+  "source_run": 43955840933,
+  "source_job": 133610096637,
+  "source_merge": "95181cbb19941fd7ccc5a82b1515be22c8b766a4",
+  "execution": "salcapa-outdrift-b48224-3tcgdet",
+  "job_name": "salcapa-outdrift-b48224",
+  "container": "salcapa-outdrift",
+  "window_start": "2026-11-16T21:02:00Z",
+  "window_end": "2026-11-16T21:16:00Z",
+  "expected_outside_count": 6,
+  "console_records": [
+    {
+      "time": "2026-11-16T21:03:30.3349087Z",
+      "message": "INVENTORY_RECON_PHASE=initial_twenty_receipts_and_empty_outputs"
+    },
+    {
+      "time": "2026-11-16T21:03:30.3365580Z",
+      "message": "INVENTORY_RECON_PEAK_RSS_KIB=52084"
+    },
+    {
+      "time": "2026-11-16T21:03:38.1467422Z",
+      "message": "INVENTORY_RECON_PHASE=bounded_stable_inventory"
+    },
+    {
+      "time": "2026-11-16T21:03:38.1468008Z",
+      "message": "INVENTORY_RECON_PEAK_RSS_KIB=127612"
+    },
+    {
+      "time": "2026-11-16T21:05:24.2594023Z",
+      "message": "STABILITY_SAMPLE_1_COMPLETE=1"
+    },
+    {
+      "time": "2026-11-16T21:05:24.2594586Z",
+      "message": "STABILITY_SAMPLE_1_FILES=23766"
+    },
+    {
+      "time": "2026-11-16T21:05:24.7430880Z",
+      "message": "STABILITY_SAMPLE_1_SHA256=cebf376efae2cd8ce8ee66d7d7237b065c884dffb0b6256f77c01bd3852162b4"
+    },
+    {
+      "time": "2026-11-16T21:05:24.7432370Z",
+      "message": "STABILITY_SAMPLE_1_AT=2026-11-16T21:05:24+00:00"
+    },
+    {
+      "time": "2026-11-16T21:07:05.4556272Z",
+      "message": "STABILITY_SAMPLE_2_COMPLETE=1"
+    },
+    {
+      "time": "2026-11-16T21:07:05.4556757Z",
+      "message": "STABILITY_SAMPLE_2_FILES=23768"
+    },
+    {
+      "time": "2026-11-16T21:07:05.9404909Z",
+      "message": "STABILITY_SAMPLE_2_SHA256=11c25a229e7ce6dcbf897869a00c3eaad10160d1aeea7e70bff201bdbbba6f80"
+    },
+    {
+      "time": "2026-11-16T21:07:05.9405323Z",
+      "message": "STABILITY_SAMPLE_2_AT=2026-11-16T21:07:05+00:00"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169176Z",
+      "message": "STABILITY_PAIR_1_2_ADDED=2"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169596Z",
+      "message": "STABILITY_PAIR_1_2_REMOVED=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169753Z",
+      "message": "STABILITY_PAIR_1_2_CHANGED=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169773Z",
+      "message": "STABILITY_PAIR_1_2_ETAG=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169786Z",
+      "message": "STABILITY_PAIR_1_2_SIZE=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169797Z",
+      "message": "STABILITY_PAIR_1_2_PARENT_OR_AREA=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169810Z",
+      "message": "STABILITY_PAIR_1_2_NAME=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169822Z",
+      "message": "STABILITY_PAIR_1_2_RELATIVE_PATH=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169832Z",
+      "message": "STABILITY_PAIR_1_2_MODIFIED_TIME=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169896Z",
+      "message": "STABILITY_PAIR_1_2_CONTENT_TAG=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169909Z",
+      "message": "STABILITY_PAIR_1_2_MIME=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169918Z",
+      "message": "STABILITY_PAIR_1_2_ATTRIBUTION=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169928Z",
+      "message": "STABILITY_PAIR_1_2_TRUSTED_URL=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169937Z",
+      "message": "STABILITY_PAIR_1_2_OTHER_METADATA=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169947Z",
+      "message": "STABILITY_PAIR_1_2_OTHER_ROW_FIELDS=0"
+    },
+    {
+      "time": "2026-11-16T21:07:06.1169957Z",
+      "message": "STABILITY_PAIR_1_2_SERIALIZATION_ONLY=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.1271766Z",
+      "message": "STABILITY_SAMPLE_3_COMPLETE=1"
+    },
+    {
+      "time": "2026-11-16T21:08:44.1272203Z",
+      "message": "STABILITY_SAMPLE_3_FILES=23768"
+    },
+    {
+      "time": "2026-11-16T21:08:44.6263594Z",
+      "message": "STABILITY_SAMPLE_3_SHA256=11c25a229e7ce6dcbf897869a00c3eaad10160d1aeea7e70bff201bdbbba6f80"
+    },
+    {
+      "time": "2026-11-16T21:08:44.6264062Z",
+      "message": "STABILITY_SAMPLE_3_AT=2026-11-16T21:08:44+00:00"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7393752Z",
+      "message": "STABILITY_PAIR_2_3_ADDED=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394206Z",
+      "message": "STABILITY_PAIR_2_3_REMOVED=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394388Z",
+      "message": "STABILITY_PAIR_2_3_CHANGED=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394413Z",
+      "message": "STABILITY_PAIR_2_3_ETAG=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394431Z",
+      "message": "STABILITY_PAIR_2_3_SIZE=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394448Z",
+      "message": "STABILITY_PAIR_2_3_PARENT_OR_AREA=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394466Z",
+      "message": "STABILITY_PAIR_2_3_NAME=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394480Z",
+      "message": "STABILITY_PAIR_2_3_RELATIVE_PATH=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394562Z",
+      "message": "STABILITY_PAIR_2_3_MODIFIED_TIME=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394578Z",
+      "message": "STABILITY_PAIR_2_3_CONTENT_TAG=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394590Z",
+      "message": "STABILITY_PAIR_2_3_MIME=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394602Z",
+      "message": "STABILITY_PAIR_2_3_ATTRIBUTION=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394617Z",
+      "message": "STABILITY_PAIR_2_3_TRUSTED_URL=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394631Z",
+      "message": "STABILITY_PAIR_2_3_OTHER_METADATA=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394645Z",
+      "message": "STABILITY_PAIR_2_3_OTHER_ROW_FIELDS=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.7394658Z",
+      "message": "STABILITY_PAIR_2_3_SERIALIZATION_ONLY=0"
+    },
+    {
+      "time": "2026-11-16T21:08:44.8208084Z",
+      "message": "STABILITY_CONSECUTIVE_COMPLETE_INVENTORIES_EQUAL=1"
+    },
+    {
+      "time": "2026-11-16T21:08:44.8564931Z",
+      "message": "INVENTORY_RECON_PHASE=first_read_only_reconciliation"
+    },
+    {
+      "time": "2026-11-16T21:08:44.8565353Z",
+      "message": "INVENTORY_RECON_PEAK_RSS_KIB=277576"
+    },
+    {
+      "time": "2026-11-16T21:10:40.4383952Z",
+      "message": "INVENTORY_RECON_PHASE=final_complete_inventory"
+    },
+    {
+      "time": "2026-11-16T21:10:40.4384436Z",
+      "message": "INVENTORY_RECON_PEAK_RSS_KIB=517984"
+    },
+    {
+      "time": "2026-11-16T21:12:23.9485601Z",
+      "message": "STABILITY_SAMPLE_4_COMPLETE=1"
+    },
+    {
+      "time": "2026-11-16T21:12:23.9486025Z",
+      "message": "STABILITY_SAMPLE_4_FILES=23768"
+    },
+    {
+      "time": "2026-11-16T21:12:24.4357023Z",
+      "message": "STABILITY_SAMPLE_4_SHA256=11c25a229e7ce6dcbf897869a00c3eaad10160d1aeea7e70bff201bdbbba6f80"
+    },
+    {
+      "time": "2026-11-16T21:12:24.4358214Z",
+      "message": "STABILITY_SAMPLE_4_AT=2026-11-16T21:12:24+00:00"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5535485Z",
+      "message": "STABILITY_RECON_FINAL_ADDED=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536186Z",
+      "message": "STABILITY_RECON_FINAL_REMOVED=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536376Z",
+      "message": "STABILITY_RECON_FINAL_CHANGED=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536402Z",
+      "message": "STABILITY_RECON_FINAL_ETAG=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536416Z",
+      "message": "STABILITY_RECON_FINAL_SIZE=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536431Z",
+      "message": "STABILITY_RECON_FINAL_PARENT_OR_AREA=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536443Z",
+      "message": "STABILITY_RECON_FINAL_NAME=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536452Z",
+      "message": "STABILITY_RECON_FINAL_RELATIVE_PATH=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536461Z",
+      "message": "STABILITY_RECON_FINAL_MODIFIED_TIME=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536468Z",
+      "message": "STABILITY_RECON_FINAL_CONTENT_TAG=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536476Z",
+      "message": "STABILITY_RECON_FINAL_MIME=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536550Z",
+      "message": "STABILITY_RECON_FINAL_ATTRIBUTION=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536558Z",
+      "message": "STABILITY_RECON_FINAL_TRUSTED_URL=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536565Z",
+      "message": "STABILITY_RECON_FINAL_OTHER_METADATA=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536574Z",
+      "message": "STABILITY_RECON_FINAL_OTHER_ROW_FIELDS=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.5536584Z",
+      "message": "STABILITY_RECON_FINAL_SERIALIZATION_ONLY=0"
+    },
+    {
+      "time": "2026-11-16T21:12:24.7326895Z",
+      "message": "INVENTORY_RECON_PHASE=independent_read_only_verification"
+    },
+    {
+      "time": "2026-11-16T21:12:24.7327434Z",
+      "message": "INVENTORY_RECON_PEAK_RSS_KIB=517984"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3288176Z",
+      "message": "INVENTORY_RECON_PHASE=verified_read_only_result"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3288647Z",
+      "message": "INVENTORY_RECON_PEAK_RSS_KIB=525004"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3288857Z",
+      "message": "INVENTORY_RECON_PHYSICAL_FILES=23768"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3288892Z",
+      "message": "INVENTORY_RECON_REPRESENTED_FILES=23778"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3288907Z",
+      "message": "INVENTORY_RECON_UNRESOLVED_FILES=8436"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3288927Z",
+      "message": "INVENTORY_RECON_APPROVED_UNRESOLVED_SOURCES=8430"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3288944Z",
+      "message": "INVENTORY_RECON_AVAILABILITY_EXCEPTIONS=5"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3288960Z",
+      "message": "INVENTORY_RECON_INVENTORY_SHA256=11c25a229e7ce6dcbf897869a00c3eaad10160d1aeea7e70bff201bdbbba6f80"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3289053Z",
+      "message": "INVENTORY_RECON_BASELINE_INVENTORY_SHA256=0e556598be30292cc1bbb2e46bb964b2e6e6f5e38f0b3b5e93b48a7cc68bc613"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291333Z",
+      "message": "INVENTORY_RECON_SOURCE_DIFFERENCES=21"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291440Z",
+      "message": "INVENTORY_RECON_SOURCE_DIFFERENCES_SHA256=eb78310c183ff225ac3469f351d50ef4b9fb3acaadd7720788877ab7c4bc5442"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291492Z",
+      "message": "INVENTORY_RECON_APPROVED_CRITICAL_DRIFT_SOURCES=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291511Z",
+      "message": "INVENTORY_RECON_MISSING_REPRESENTATION=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291527Z",
+      "message": "INVENTORY_RECON_HISTORICAL_FAILED_FINAL_RECONSTRUCTED_BY_HASH=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291543Z",
+      "message": "INVENTORY_RECON_PRESERVED_RECEIPTS=20"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291558Z",
+      "message": "INVENTORY_RECON_PRESERVED_RECEIPTS_SHA256=21c4bcd816686d4178c32bf224228c13639aa56a8225cf0cd3219af6fab0cd1f"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291576Z",
+      "message": "INVENTORY_RECON_SAVED_TARGET_ROWS=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291594Z",
+      "message": "INVENTORY_RECON_BASELINE_PAUSED_SOURCES=733"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291609Z",
+      "message": "INVENTORY_RECON_CURRENT_PAUSED_SOURCES=733"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291623Z",
+      "message": "INVENTORY_RECON_BASELINE_HOLD_SOURCES=93"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291654Z",
+      "message": "INVENTORY_RECON_CURRENT_HOLD_SOURCES=93"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291669Z",
+      "message": "INVENTORY_RECON_PAUSED_MEMBERSHIP_CHANGED=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291682Z",
+      "message": "INVENTORY_RECON_HOLD_MEMBERSHIP_CHANGED=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291697Z",
+      "message": "INVENTORY_RECON_PROTECTED_CHECKPOINT_SHA256=214f2756ca0bc179bfaed880480113b5cd31cecd9de0e803e03013bcd4872ac7"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291711Z",
+      "message": "INVENTORY_RECON_SEARCH_MATRIX_SHA256=9559c337620b2399cf8cf845cf5477f77e5c92de08f8bae2aaa01cec83125373"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291726Z",
+      "message": "INVENTORY_RECON_ALL_REPRESENTED_CONSIDERED=1"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291936Z",
+      "message": "INVENTORY_RECON_DATABASE_WRITES=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3291996Z",
+      "message": "INVENTORY_RECON_NEW_RECEIPTS=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292024Z",
+      "message": "INVENTORY_RECON_NEW_BASELINE_ADOPTED=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292040Z",
+      "message": "INVENTORY_RECON_PROPOSAL_PREPARATION=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292056Z",
+      "message": "INVENTORY_RECON_SOURCE_CONTENT_DOWNLOADS=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292071Z",
+      "message": "INVENTORY_RECON_PREFLIGHT_EXECUTION=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292087Z",
+      "message": "INVENTORY_RECON_PROCESSING_AUTHORIZED=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292103Z",
+      "message": "INVENTORY_RECON_RETRY_RESUME=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292118Z",
+      "message": "INVENTORY_RECON_HOLD_RELEASE=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292133Z",
+      "message": "INVENTORY_RECON_FRESH_CONNECTION_VERIFIED=1"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292149Z",
+      "message": "INVENTORY_RECON_COMPLETE=1"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292184Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_ADDED=21"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292198Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_ATTRIBUTION=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292213Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_CHANGED=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292228Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_CONTENT_TAG=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292243Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_ETAG=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292258Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_MIME=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292273Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_MODIFIED_TIME=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292287Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_NAME=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292948Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_OTHER_METADATA=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3292990Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_OTHER_ROW_FIELDS=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293005Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_PARENT_OR_AREA=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293020Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_RELATIVE_PATH=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293033Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_REMOVED=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293062Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_SERIALIZATION_ONLY=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293074Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_SIZE=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293257Z",
+      "message": "INVENTORY_RECON_BASELINE_DIFF_TRUSTED_URL=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293283Z",
+      "message": "INVENTORY_RECON_CURRENT_CATEGORY_AUTOMATIC_RETRY=518"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293316Z",
+      "message": "INVENTORY_RECON_CURRENT_CATEGORY_COMPLETE_WITHOUT_TEXT=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293333Z",
+      "message": "INVENTORY_RECON_CURRENT_CATEGORY_GOVERNED_HOLD=93"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293347Z",
+      "message": "INVENTORY_RECON_CURRENT_CATEGORY_GOVERNED_REVIEW=7085"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293362Z",
+      "message": "INVENTORY_RECON_CURRENT_CATEGORY_NO_CANDIDATE=2"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293376Z",
+      "message": "INVENTORY_RECON_CURRENT_CATEGORY_OTHER_OR_CONFLICTING=5"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293390Z",
+      "message": "INVENTORY_RECON_CURRENT_CATEGORY_RETRY_PAUSED=733"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293404Z",
+      "message": "INVENTORY_RECON_READBACK_HELD_MEMBERSHIP_UNCHANGED=1"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293419Z",
+      "message": "INVENTORY_RECON_READBACK_OUTSIDE_APPROVED_CHANGED_SOURCE_HASHES_SHA256=4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293435Z",
+      "message": "INVENTORY_RECON_READBACK_OUTSIDE_APPROVED_SOURCES_CHANGED=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293450Z",
+      "message": "INVENTORY_RECON_READBACK_PAUSED_MEMBERSHIP_UNCHANGED=1"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293464Z",
+      "message": "INVENTORY_RECON_READBACK_PROTECTED_CHECKPOINTS_UNCHANGED=1"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293478Z",
+      "message": "INVENTORY_RECON_READBACK_REPRESENTED_ADDED=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3293503Z",
+      "message": "INVENTORY_RECON_READBACK_REPRESENTED_REMOVED=0"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3294481Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"fb80e44822aba5dcd07188e22f02563a06af1e4e26c13ab90b49ae26b14a542d\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"a2de7d06474a8be8e03dcf9e41ecd461a4d146cffd48314d943512609d551e00\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3294502Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"1f2b63be50835f98110a801f3083c1688191badf72004818813cba966c7a7b9f\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"3037084edb69acbd134deee042d08f1b2bb36188e9a4e0ee2e548d181b7f1a50\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3294520Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"2c6f2f0041d4690293f97afbf5c9124c3227b99756b8577805edf0052e1f5133\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"c30290b172263290dda9b9e1ef0b58ecbab8e3955c3190e9c6f06ed36413ebd8\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3294585Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"74483826f27865994b7bac6500f74ea0e95976de2ef9125cf1f09823d80e83a7\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"c9fa1eccb9816facb6d071332cdf367624fb8f8e06c66ac4a596591e63c5538e\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3294610Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"0596b090b4388717c3ae487955f973686f0c1448e7b0d9fdcbc4c5dfd558c066\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"00912c08ec6773f0bf9b3862b4a625c7419ddd226ecdeb194744edd85ad25399\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3294642Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"430cbe9373136e0e3b3473078da087e4521e1ef4520e9cc0144f05b159cecff2\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"2c548fbedd9636a54105d96db3f5d8f546f6a0d707fd867f552bd5fdd6d55dda\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3295114Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"f511000863a2b072c80fd04f9902911d1645f641e596f0afb9c9c047f0c5c3f2\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"d6bb55b27c4a0e66258019c73300e177990291a3ae28732c9e98995093b98a8c\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3295426Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"b0567f6d07de36d5830b9fcb28048b70ac247cf6efb961153341ad86f1bd64a2\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"9c092d07f9a3678c90ea3b9abc888e038080ff74c611e169985cd97151c13338\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3296155Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"57ca84959deca02e5f8930b5b2d8347c5de258914df2e085bce6bdd68d7daa8b\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"e74bf378a7e0e76b52b9703e5317672fbac84055cf53677197907bf6c94102ab\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3296210Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"df40fe5bb2b450950e5727e0d2ea4d41c6569f7bea345401ac312fff8fe0695a\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"c1fb7a15b6b35512bf0a78836bcb7e0754a7649c5d79d05a10a785537946256c\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3296559Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"ba503aff6231ffadc9c92b9e2410aee34a6f8fa1f71d43648c510b1924ac6f3c\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"6eec09e558325eb39378e4026df0d9cc6a2e7953d1abc01b3a978b9279235012\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3296694Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"8a0d6c21442c95a80617a45e20b02aba1412150131ce4b8c45f352ef22ba293f\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"fbe4a3c5749590aa8e355ba2d3cfa1a0fdb43f1ce7bc50ce5e75b2c0dc2a5b85\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3296735Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"688f9f0f5df8a79f08429e49be4fb29cb030f7bcdb53b9d608ef4f1ccb88e061\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"b751ae6cb0ef5674e068fd31bd7290403be490e5d566cbeef8c116372586f505\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3296760Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"db2047d767da7a3f4461afb617f90635a1796407cdb6ad5c0d0fdc11f7fe1fc9\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"1603f63c9f0514385fa2fa96232153ed1aadd469cd0fbe55802638d7563dca68\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3296858Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"5448a4b958a20534ce6ffa96e176dc9b773470c32ad448416d9a9d31f5c274e5\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"4d175b3999b7b33fc90b668e4d3fc82809eedfc70b50dfd2e1ee9a4070a70402\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3296888Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"a06f9c469613b192dce9ff3105c18580460d41f290f8fda8f4f99999685dcd5a\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"b8ed447fc4c835644c619eba386c3c6700777ffd6f7e5eef5c18fdeb23e6144f\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3297022Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"7a7230affcb22dc6e8cc96dd4acfcb8dd9308a4cabf95a590a490f401eb0688b\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"ef028283364507a8d18238847c900b23cd5ae9f8a798947396b6f5f249427664\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3297110Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"df7cf9708c6bc5b9cc19b0aa853e8de9c7b6efa88eb5ae0a5374cf12c5db243b\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"90b8c55b5e4becdc113b699b05d001fd6454db1e014f6cf956d28f0c57dca686\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3297145Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"046531c01ab9be9d1734d639f8620f5465b0f86cc63767d07f52b7e690350ce8\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"60084a267511fef0294afa88cd076ce2bd8c847fb55fb3df8bc218e5a9403514\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3297322Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"f0e60dd6cae498c7d3a0bad011ab0bbf979a35b84e78b39375a0ae7408348bda\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"57fa87ab96768f87eebb9e14ce10d99e178acbe4685380ab43f1d5981e74c645\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3297575Z",
+      "message": "INVENTORY_RECON_SOURCE_DELTA={\"baseline_row_sha256\":null,\"critical_fields_changed\":[],\"current_row_sha256\":\"761d7803ddef084fc234080638bc8eb1c0243ecdabc0a19b16a4a2b6ad2fb07c\",\"currently_represented\":true,\"difference\":\"added\",\"inventory_change_groups\":[],\"relation\":\"outside_approved_baseline\",\"source_id_sha256\":\"7842db835888cdf3ae250cfb3c002d812e5d67f25c32fb45a296f69c015b147d\"}"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3297632Z",
+      "message": "INVENTORY_RECON_QUERY_INVENTORY_LINEAGE_MATCHED=23684"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3297649Z",
+      "message": "INVENTORY_RECON_QUERY_REPRESENTATION_AND_COVERAGE_MATCHED=23683"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3297664Z",
+      "message": "INVENTORY_RECON_QUERY_RIGHTS_AND_CONTRARY_MATCHED=12289"
+    },
+    {
+      "time": "2026-11-16T21:14:22.3297679Z",
+      "message": "INVENTORY_RECON_QUERY_STABILITY_AND_CONTROLS_MATCHED=23686"
+    }
+  ],
+  "complete_outside_source_bindings_retained": false,
+  "scope": "Reference is the already published sanitized aggregate/control/inventory output. Missing OUTSIDE markers must be recovered from exact historical execution; no source identities invented."
+}
