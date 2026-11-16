@@ -19,7 +19,7 @@ on:
     paths:
       - 'deploy/azure/activations/knowledge-outside-log-recovery-20261116.json'
 concurrency:
-  group: salcapa-knowledge-diagnostic
+  group: ${{ github.event_name == 'pull_request' && format('salcapa-outside-log-recovery-pr-{0}', github.event.pull_request.number) || 'salcapa-knowledge-diagnostic' }}
   cancel-in-progress: false
 permissions:
   contents: read

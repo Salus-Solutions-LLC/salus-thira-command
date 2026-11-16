@@ -67,6 +67,7 @@ class RecoveryTests(unittest.TestCase):
   self.assertNotIn('workflow_dispatch',w)
   for prohibited in ('job start','job create','job delete','deployment group create','role assignment','psql ','connect_database','az monitor diagnostic-settings create'):self.assertNotIn(prohibited,w)
   self.assertIn('if: always()',w);self.assertIn('salcapa-dev-approval',w)
+  self.assertIn("format('salcapa-outside-log-recovery-pr-{0}', github.event.pull_request.number) || 'salcapa-knowledge-diagnostic'",w)
  @unittest.skipIf(os.name=='nt','Actual Bash guard is exercised in Linux CI')
  def test_actual_pre_azure_guard_rejects_changed_fields_sources_authorities_and_replay(self):
   import yaml
