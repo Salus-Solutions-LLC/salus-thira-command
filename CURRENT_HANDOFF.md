@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 16 November 2026 — Clinic research addresses prepared for governed candidate retention
+
+Routine SAL-D124/SAL-D127/SAL-D140 topic-source maintenance adds 72 public addresses (126 to 198 unique endpoint-table destinations) from two-pass clinic/outpatient research and selected CERC/NIST method follow-up. Entries remain Unvetted Candidate; existing IDs/provenance are preserved. No source qualification, Member finding, external report release, software, connector, access, reader, assessment, recovery or production change is included. All required checks and exact merge/readback remain to be verified before claiming authoritative-list retention. Full current Knowledge consideration and human review gates for the associated paper remain separate.
+
+
+
 ## 16 November 2026 13:06 CST — Read-only reconciliation blocked by Azure throttling; cleanup verified; bounded transport correction prepared
 
 **Approved version and observed outcome:** Marc explicitly approved PR #1284 exact head `f1c3b5294bbb3ad226454531e6c1d8dca55d1f28` for merge and one governed read-only reconciliation. It merged as `412764b94c260a7fdea1713c641d0e9d6af57e45`; all nine candidate checks passed, including 39 PostgreSQL tests. Protected [run 43935027835](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/43935027835), attempt 1, approval job 133537262403 and task job 133537332495, **failed**. All fourteen other executed merge checks passed; two PR-only jobs skipped. No workflow rerun was requested.

@@ -24,9 +24,9 @@
     "SALUS_GEOSPATIAL_INFRASTRUCTURE_INTELLIGENCE_STANDARD.md": "0ec4dbf14108931458b8a674a9c6e379ccbcd71502f75f7004e48ad072a4ac04",
     "SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md": "bb828e2ad5ce9c9d6aefbb0498660da1f22f3ae5703bc114d0c2274f4a28c914",
     "SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md": "b11d27e9885f0490f8ea4e21a049d46ab874daab5f77ee2d2334332199b3dab5",
-    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "f73375c2dd91557c13244aab0c407446d9aa96407be6fea262ffcea22f00f6c4",
+    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "ab0d6c701d35d265fc5e84cd78e2ff399d308b0c44a6fb2866ec491e2c566db4",
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
-    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "03ab0f98a5676fc13120fc3b40b8005d47a89d0a92308ca1637704b9eaa11eec",
+    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "63e6b5dc694874e23d37ffd1df70b6f6ae60a678aa2ec7d8bf803d26fe231023",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
     "SALUS_PROGRAM_CHARTER.md": "eaa2e2cdb18a62b3122e3c047725f484ffa8bdd7c22bfd0b88ad0c774a39e191",
     "SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md": "e2a6c9f76dd33e291305fec43548ad0021a1cf44d0acaaa87f075bea57eb9409",
@@ -9648,6 +9648,622 @@
       "decision_ids": []
     },
     {
+      "id": "REQ-81230369e29b9a90f2584519",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 210,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "1ec422abeef16a69ac225b0fb9e010fccf84add13f5ce91627bd71031ad89e0c",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c3653a64bf160d64c6412577",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 212,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "39dd3c3a7e51379d5b0c9d7c9fc55fb4b09a14f0786b0829fd34534c03c518d3",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d4eb70b81e47da3ca5819805",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 214,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "34e9f20a97f60ad70ccfdfaa0d411449530561a5d8877fe3002e194b48a2ed69",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-fc2899716e4f960bc9621b86",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 216,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "9bc759f32c584d8d179e522359eafe739aeaa8ecac88515bd99cc14cc895761d",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a30ff08e49a744dda8e1e416",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 217,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "4da1ec6f47782090102dc16bda978efb5655fbf2ddce0f84ecf1faf79a930f2d",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7ac6b356e6ae530e2e0f9989",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 218,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "ee63df84a51b751206bfae7a942ac8dcf309053c368c50c013b39c23e98b3b16",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-f947b83619ac142d8e263b75",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 219,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "8f53f787911bcc4021817405ceff4aabb69931a519b9d33fcf5dd009ef94c8a6",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a0f6f0cf1c7eeb67c828483e",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 220,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "5f6e47f639070dc1713ebe59ce37686f5232b98ce223a9be4b60d19b533e5790",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-eae896a122c104c22f67ec9b",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 221,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "7a33d94922f3ff5bfd4e218a44fa9b60ba64bc68360a5add9e44b1c05ed24f14",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-3e91907c2a06ff09a6bb8ec3",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 222,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "4e6df1d49c26d09330e82941033a5ed82fd405375a43aa7afc5e9c943ae4e8b3",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7ee8b9e92299dd0c32537803",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 223,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "1a505b4056675ae25ddbcf768159f9a12017cc3144691465aca2bc35ddc873ea",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-399b1f142014187f99b25a02",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 224,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "64063654689b76f77d2fa738ccf886315e87ce92a07887eb08ca1e0e4ef22b1a",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a0046d202da6a4130e16724f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 225,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "b94a2792f0f80be3a9e5cc70891d777128e59dea68e1c040f2bb7d59a4f50d66",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a4500441b3ab9ba062febc1f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 226,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "b4eb26c8ba065f75245e936299e5a4e7e618b188eb86ca1719fa3bcad4326ea4",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-865ad9379ea9f77252edc2ce",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 227,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "ba2c5007c7b3fba0a6081140edd3b7dccf1c5b50cc3755295d4b7d052135b894",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-b3df1f5874b1123d43906786",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 228,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "f34ea16c165d4cb915eefd02a3a05843830356b2ba3ef6c54aa50fc7a7f36ec7",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-030c7dc36e6d48b48c5bac14",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 229,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "4f5da95a28ebf77f19e06ca405305e73974c129b89270f685d936d84a7aed443",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-f29e8fac68d04d757ad9202a",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 230,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "e479e3d0a16f4418b3c1597c8874062f9e1ab980ada17cfd0aa94e60a0b0a587",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-0c7b740d9db9b38ed4663258",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 231,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "b9bf662ef806d5091290d310d0a284ac0cf66670526ead3cce6790e3e2f64cb2",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4f319a953bbf8c81711bd0d8",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 232,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "c13b221071fa614fe122c9aed8347b8255fec2a39018c3643ff83e969ee5906e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-8a9739fd7cca110cee8e5dc0",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 233,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "5e7189d6e515ef4a1ecb806c609b093d1acb7cfc24ed037818f9517cd1e407f0",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7a199f3410a2ef7cd5afd545",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 234,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "c3a799dabf0151d5961bed3aed6df52919b0812983a59047ecbe7e18d9f7d52e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-27044d2e3abddc394fd3d1b9",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 235,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "4a8023b24467a62df56f39d05e5cb2bc5ca8883aa26f75845c258ebb26269932",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9e9e5a5cac95daa5b7027f34",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 236,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "4311e313ae42ccc5cd734aa087686da3e0d6fda63dd2b52315e6fbe8e1e24842",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-5ea52bbfb6296e3ed847f43d",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 237,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "454a1433064f56b52e6366b589ddbcb47215bee8f45e54296440197db0d06b60",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-dc8ae39309f16f7ccb817841",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 238,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "eab18b062037b483eceb3c961d3d020e7c533f69fc2cd9619dcc94e98053ade5",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-998a6aaa6d7143f0b293b6ba",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 239,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "c9a610f42591e3c17912fdac83eb2cce49f9b02ae3d6e16fab404ff833605ceb",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-295f03fc2fca5c5a283d119f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 240,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "62b9be7b3399554633a6700398cdf638082b9c4cd0768dd44a79293d9557d8ce",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-10a8ecddfe866568309afe8a",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 241,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "322d9ee86bedc5b37d9ab7e578c8b573a26a9c81b54a84e3686a0bd8056b18cb",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-03c33520b5d46d15b0dfc8bd",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 242,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "336900d612b499658f0d10f0a229dc5dfff399a313f1cb8abfc8c87f170d7b81",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7fd3520a56689a8bc3ee347c",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 243,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "89c5c24e4277b657884875fa39f6f90c9004dd910a8629939564528c01fad297",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-20a201c965e59d670b75284a",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 244,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "575b1646abd7835e03ad8897265450bfbd4248f1e4af2c3d46453ce614a1ec63",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-35f965f95028ba0a5d6d439a",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 245,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "ed09d231b4126b96e99c167e6dd5f360902cfcd3e6fefffb8b3370491822d965",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-b0888ff32aa5c13581ec139c",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 246,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "337e3a1458fad54c7242ecacefb36effe358f005f050ac0650b7f5739a6d9eca",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d3c6ed9f068aeff2916bb41b",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 247,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "c58539272f0b0f8e5ff3fdbef7c19c8a70812084dfc91c9646407b6f1ac807e6",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4ecc3055b76ef07f697329c4",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 248,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "d43b22d65ff2a4cf11566da6ac84b73ecad3f1c0ec9f4e5612689a2304b97e9b",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-0f3d95e252989b89c658af43",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 249,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "5f9250d4bc484f690b6c9c877cbaf797b38ba4cb4ff01f75a182257d8de265dd",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7b8e3b4423d1cbe745e907e1",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 250,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "c0648cbb97ed8a980f0a6fdb822730234471b330f24f9cd3133cad52b0e42bd3",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-5e2da684f8e2715e3c88f85a",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 251,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "443fca8774884e2f765d430fd4bb599f82c9fbf42fd76c7eff0ec1c793e4dd2e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d6f5bc7e154b3786887b1abe",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 252,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "817a6c2aa46c2450f251bb38b4ab3fbb456fc44144c6c32fec5bd494641219e4",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7e174eb823c56647e8d2f9dd",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 253,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "67e538cf6962827424b757aa0b2352b0bc1b800008961f5e4e5c34b5db236c03",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-0ab331883c9c4b21f90c0e2a",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 254,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "3d2fb5528bf45753375dc448c84670022b96a003e719fcdc97ec3e6b785b028f",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-bc16610ae90a163410d6de5b",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 255,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "f2bdba97b4bb9ccd6ecdf6458b4422d1ab9fbf834e1cdbd53138e631dc1a2a54",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-f2c9427c20ad5a640110c1c0",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 256,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "36c43e1bc04ad863e8baf8329f481eac016e03bd70f453680cb31384bbe52e58",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-f6c4ba4416d99a5b61952ace",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 257,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "58c4ff45a96fc63d41c9622cfe971da6c6975e1181c842d2c8115dc8b112cfa7",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7f52910c8195aab562560811",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 258,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "a549b46fa4ec5866133b0636e0bc580c90756000178fbf3110cca1b48f6ce680",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6a568e050d456f7926a50c41",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 259,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "f97d7ee5e63be287baf3c2e5e15be6d7b2ee172fe84d0883466975a7d8528d3f",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-22e6c96b282f4db8d9f3d82f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 260,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "1aacc49badacf21096a39b3632902c96dbba69a1c9227b5d9786b682b9f7122a",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-bf6a1e1882d08346d3266103",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 261,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "35c75e84fa89edf2698cd0ccb2a8cd7ac58ff600d87c4e56c84932b3f7a6f29e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-39c3188bf2359203d74a3d62",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 262,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "c861b354baf7b37ea9710b8d4abcd6c787dbe0fe6070031a0bf219b0c8bf4667",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-e3323b64e33b71e1e495530f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 263,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "cd072838c8a7405adc5122ee0eb6904f7a48a35f7ccca57796b2729723aea3fd",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-b7c910beaef6987b8cea75cd",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 264,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "9600864e83a8f236d12c5fe973d299e0570d2f5a1c66ed1b724c0f1deb91b2ef",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-b9495f8348892034ccc76d70",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 265,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "7e438f172f18e3c5edafdd16a61ae9b65f7b1e967a792a85763a9f91908e9958",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-cacd19560f9c095a610448db",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 266,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "01b7bcad270b635ab2e385efc6fbdfc57a30b3fef2b9478279b383d9f668e737",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c756170c52780081c9389cba",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 267,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "6c37825921c94637c1f0f281a0ab87a0ef7ad65738e29b9978f0c1b8e180913e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a4a9abd0b0e50131d02a45c7",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 268,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "89df5704a87b9ed44c6ec471061a3929cfb4ed92de503564050c3ed0d83bd3c1",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-3050cf8e827f51424bdab467",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 269,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "b66c07e49dab065bbfdc3d7b42a84543cf2c8a5187c8c6e238f50e99ec404f19",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-10189839e93f3abe8307e125",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 270,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "0898056d415f23c907b3d4121329ba6917b973fa3ac51c4f77d550f156d2d361",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-339773bf5025642af2a62041",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 271,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "b542cc22e557f2f5b44d4d641c68b482fd6c0cf64c18bbb8448e724da2584d4e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6148f66e0c408733a6ec4152",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 272,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "9b7a6bdc6632f10048c69c8f1e94b6f3ba7792e3076930daa494b04c3e3836ed",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d82834f0e8bb9a22ebb006d6",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 273,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "b0f88aa47e1540aec05e3044e15bc0999592f3c34ce7296c59872b77bd7698b4",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-5fc27a8bcf573d8e1df88137",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 274,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "84b65bcd8a3bb5eff35fe286f346776061a5d0de002c53ea7a5079a8f633c2de",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-3ef6a1b99eb88cf03f86feb0",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 275,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "cb6dee1a034c5d670e88bc4a9d8a0a21c4c1ad2b3f355108ed31113a044ca285",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-acec86e226d8896d2e4a8a21",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 276,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "1b6064ab741ec62d1a44b1b036e1744ad3e5bcc5df11a3921af05647f2629ba3",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-87c0da0b210d39b36417445f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 277,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "ac0816d9111ec8f1ab6aeddc809bc7accc193e245bb45678488a791907d3b1d8",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-af9677d6dda04f07af90334f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 278,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "fd31dcbb2ebe1ea0b45e58dd87c120343e27eec8fc1e866a33f4c966e8c796a2",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-73046d12726c1b84dc4ae307",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 279,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "12237a4a82a6261a2ceda114392422ef53b31d32ff2f108333db31f8f0db9a18",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4070f0e785399dc1a6b9b836",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 280,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "da59aa97b009b69765161870cf3949116338418dbe7867a7f8b2bde84507f5f1",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-17ba59fd54e09616c4f172ce",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 281,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "dfcebfcd5498426089135c7cc24fbd8b0c7d7cdd44e9a5430ef4476c2e60279b",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d326ae31724a547e3ff62e8f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 282,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "5ea5635639dfcd8f0d81808ea1496886d6973f1edfa3fa88c0eedf8a7cd1cf5d",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4ebc6c8e24cc8a2915cc8d6e",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 283,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "596a1e14cf3d0ffa5f313ca319814e139ed0b47f353ce8f8b859b4eea4dcc566",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d520f0f3e5031029b6351c90",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 284,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "4e20b9fed4c7cb2969a6870fab2f31cbed27ad0ea32a4c7f40712c80726bb458",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-253c836e6f9f933f374fcc5c",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 285,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "8723017a78ca8bf490eaf2cb45d73ac173a67562d646a188d2a929a06d083ba2",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ed02447c398fe18579b01dc2",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 286,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "2f9323e3c75320e70a040237aaa1142e13b42def9245ac6c3865a3b2737e7ed5",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9a26a5be9987f2b7084cd266",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 287,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "22d68368b612de16541653d572df46997bf8aa2163410750657fca1559f7e7df",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-3c2ad7fb0bb482e1e5f03f5b",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 288,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "90684771b7b8b5f97302d02f0d8f573139882e3250a6764eec5f40375639a332",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-b9eb57cb193e4edf6e36f904",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 289,
+      "section": "Salus OSINT Global Endpoint Register / Clinic and outpatient practice topic expansion 16 November 2026",
+      "text_sha256": "226c4c1ff853adc154ce5d086d47dd106d12917df22945192915eb559e00de21",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-b9d3a1caf2f3961ecad861e2",
       "source": "SALUS_OSINT_SOURCES_LIBRARY.md",
       "line": 1,
@@ -10660,6 +11276,32 @@
       "decision_ids": [
         "SAL-D124"
       ]
+    },
+    {
+      "id": "REQ-cae6624fefaf3b4a32d2e666",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 66,
+      "section": "Salus OSINT Weekly Discovery Log / Clinic topic expansion 16 November 2026",
+      "text_sha256": "889198f5c3435c17037cd1fb096b81cdcb71649703ee0799cc46812ddf2c3006",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6e4cb38d5b378f6a3271f8e2",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 68,
+      "section": "Salus OSINT Weekly Discovery Log / Clinic topic expansion 16 November 2026",
+      "text_sha256": "0f5745d78378fe49e3c999014f12aa5536ca96d5ba7b8148c894441f40f02cfe",
+      "decision_ids": [
+        "SAL-D140"
+      ]
+    },
+    {
+      "id": "REQ-cdb51dd3eebade3eaaffa055",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 70,
+      "section": "Salus OSINT Weekly Discovery Log / Clinic topic expansion 16 November 2026",
+      "text_sha256": "6e1287e27dc807250f07e41ed298c1c04e8be90073c4d044a65215198c6f7b63",
+      "decision_ids": []
     },
     {
       "id": "REQ-20437102cecee7c7e772f4b2",
@@ -30723,5 +31365,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "64a57aca7a7739f80792828775987b7cdd49e6139032b4c6b916de098420483d"
+  "register_sha256": "37537b202849cb094ed1897171f20df0e92085a9e48947ef223af91ce42b7f53"
 }
