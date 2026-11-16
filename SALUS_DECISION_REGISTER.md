@@ -223,3 +223,21 @@
 ## Register maintenance rule
 
 Add a dated entry whenever Marc approves a material change to terminology, architecture, methodology, governance, report design, data handling, release policy, or customer experience. Never silently replace an approved decision; mark it superseded and reference the new decision.
+
+
+## SAL-D138 — Every task; assistant verifies routine compliance
+
+**Authorized direction: Marc, 15 November 2026. Exact implementation remains a controlled candidate pending protected promotion.**
+
+
+## Universal task compliance and assistant-owned assurance [SAL-D138]
+
+SALUS-TASK-COMPLIANCE-001 and `SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md` apply to any and all Salus work: research, assessments, analysis, writing, documents, software, administration, communications, status checks and brief answers. There is no materiality, size, medium or platform exemption. The assistant owns applicability analysis, acceptance checks, evidence collection, verification, correction and truthful reporting; do not ask Marc to certify or approve that the assistant followed the Charter.
+
+Maintain the versioned authority-coverage register and one task-correlated compliance record. Translate every applicable obligation into explicit acceptance checks. Account for all current authorized Knowledge Library documents and OSINT Library sources; search and review relevant internet sources and other authorized locations. Retain reviewed-source bibliography, exact versions, provenance, portions reviewed, where-used links, capture records, output quality evidence and active hold-state readback. Search results, downloads, metadata, historical receipts and self-attestation alone do not prove review or performance. Unavailable relevant content, stale proof, omitted requirements, partial visual review and open corrections block the corresponding completion claim.
+
+Evidence depth is proportionate to the task; the duty to check is universal. Run verification at startup, continuation, scope/authority changes, correction, handoff and before completion. Resume the same record and preserve prior dispositions. Report bounded progress and exact gaps when proof is unavailable. Executable checks must be used where available; missing integration on another surface remains a disclosed limitation, never an exemption. Local or CI success is not universal platform enforcement, full-corpus review, substantive qualification or production acceptance.
+
+Preserve all substantive human judgments and protected approvals, including exact-revision promotion, qualification where required, risk acceptance, external issue and production changes. This amendment extends routine assurance beyond earlier materiality triggers without removing substantive human authority. No compliance check authorizes new access, spending, paused work, reader activation or protected operations. Keep Compass paused and the reader disabled. Existing methods, Protected Member isolation and OPM-referenced Charter document standards remain in force. Use repository `AGENTS.md` and `docs/charter-task-compliance.md` for execution; implementation and promotion status must remain distinct.
+
+
