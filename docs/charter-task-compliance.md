@@ -119,3 +119,12 @@ Test fixtures are fictional. Never put actual task receipts or Member details in
 CI. Preserve protected release rules, Compass pause, disabled reader and unrelated
 recovery work. See the standard for source-research provenance and limitations.
 
+
+
+## Model reminders on every task [SAL-D139]
+
+Before work, issue the visible Charter reminder and retain its exact text/evidence. Use --task-type assessment or --task-type other with init; omitted classification remains unclassified and cannot pass. Task records created before this requirement must explicitly add classification and the current task's reminder on resumption; reconcile authority changes without inventing historical reminders. Assessment-specific research, analysis and reports are assessment work; general governance, status and software tasks are other work. Mixed work requires new reminders when categories change and when switching back.
+
+Set task.model_reminder to task_id, model, reasoning, text, evidence IDs and automatic_switching_claimed=false. Valid pairs are assessment/gpt-6-astra/highest_available and other/gpt-6.1-sol/medium. Reminder text and its retained evidence must name GPT-6 Astra plus highest available reasoning, or GPT-6.1 Sol plus Medium reasoning. Preserve exact user-visible wording; typography normalization tolerates Markdown bold and common hyphen variants. Record proof of the reminder; do not assert an actual model switch or universal routing. Missing/unclassified or mismatched reminders fail the evidence gate. The checker does not determine task meaning or interrogate the model selector; the assistant remains responsible. Issuing a reminder creates no acknowledgement gate and cannot resume Compass or enable its reader.
+
+Retained reminder evidence is JSON containing task_id and visible_text copied from the actual user-facing reminder, with its source reference/provenance. Its task identity and normalized exact text must match the current reminder record; another task's reminder or malformed evidence cannot satisfy the check. This binding does not establish delivery or selected-model truth without separate actual evidence.

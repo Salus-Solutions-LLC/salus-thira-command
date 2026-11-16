@@ -1023,3 +1023,17 @@ Evidence depth is proportionate to the task; the duty to check is universal. Run
 Preserve all substantive human judgments and protected approvals, including exact-revision promotion, qualification where required, risk acceptance, external issue and production changes. This amendment extends routine assurance beyond earlier materiality triggers without removing substantive human authority. No compliance check authorizes new access, spending, paused work, reader activation or protected operations. Keep Compass paused and the reader disabled. Existing methods, Protected Member isolation and OPM-referenced Charter document standards remain in force. Use repository `AGENTS.md` and `docs/charter-task-compliance.md` for execution; implementation and promotion status must remain distinct.
 
 
+
+
+## Model-switch reminder before every task [SAL-D139]
+
+**SALUS-MODEL-REMINDER-001 applies to every task, including brief replies and status checks.** Before beginning the task, the assistant shall give Marc a visible reminder appropriate to the work:
+
+- **Assessment work:** “Please switch to GPT-6 Astra at the highest available reasoning setting.” This includes conducting or resuming an assessment and assessment-specific research, analysis, findings, recommendations and report preparation or revision across SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™.
+- **Other work:** “Please switch to GPT-6.1 Sol at Medium reasoning.” This includes administration, governance, software, general writing and status work outside an assessment's substantive analysis.
+
+Classify the task and retain the actual reminder with its task identity and evidence. For mixed work, remind Marc before the assessment portion and remind him to switch back before the non-assessment portion. Reissue the appropriate reminder on a new task or a change of work category; a remembered preference or a reminder from another task is insufficient. One visible reminder covers an unchanged task segment; do not repeat it for every tool call.
+
+This is a reminder requirement, not automatic model switching, proof of selected model, permission to restart paused work, or a new human compliance-attestation gate. The assistant must not claim that the model or reasoning setting changed without verified selection evidence. Do not substitute another model silently or weaken the requested setting when it is unavailable; identify the unavailable option and the actual selection limit. “Highest available reasoning” means the maximum selectable setting supported by the user's actual client, plan and model; never infer a particular setting from an assistant assertion. A reminder alone does not require Marc to acknowledge it before otherwise authorized work continues.
+
+Record and self-verify task classification, required model/reasoning, exact reminder and its evidence before a compliance-complete claim. A missing or mismatched reminder is a corrective-action item. Preserve existing consequential human approvals, Charter document standards and all source/evidence obligations. Compass remains paused and the reader disabled; reminders and model selection do not revoke those controls.
