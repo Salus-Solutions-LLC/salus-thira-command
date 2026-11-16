@@ -1,8 +1,12 @@
 # Salus Solutions — Current Handoff
 
-## 16 November 2026 — Clinic research addresses prepared for governed candidate retention
+## 16 November 2026 — Clinic source-register update merged and read back
 
-Routine SAL-D124/SAL-D127/SAL-D140 topic-source maintenance adds 72 public addresses (126 to 198 unique endpoint-table destinations) from two-pass clinic/outpatient research and selected CERC/NIST method follow-up. Entries remain Unvetted Candidate; existing IDs/provenance are preserved. No source qualification, Member finding, external report release, software, connector, access, reader, assessment, recovery or production change is included. All required checks and exact merge/readback remain to be verified before claiming authoritative-list retention. Full current Knowledge consideration and human review gates for the associated paper remain separate.
+Marc approved the public pull request and checked merge. [PR #1286](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1286) passed all eight executed candidate jobs at exact head `a375c713dcd0271641c9b9fa7e8c26febd84e076`; two operational approval/execution jobs skipped by pull-request design. Expected-head-protected squash merge `19de3329e098f2e0b6290fae6bf70913a9e63b2e` completed at 19:53:54 UTC. Connector and independent git readback verified the four intended files and register blob `97464560ab2a56122857665f8d97a321caaa5e3c`.
+
+Routine SAL-D124/SAL-D127/SAL-D140 topic-source maintenance added 72 public addresses: 126 to 198 unique endpoint-table destinations and 105 to 177 endpoint records. Existing addresses and IDs were preserved; none changed, superseded or classified unavailable by this bounded review. Zero addresses from this update remain pending register merge. Entries remain Unvetted Candidate. This is authoritative navigation retention, not source qualification, full Library consideration, a completed assessment, external white-paper release, or deployed capability. No private research packet, Protected Member record, source body, Word document, reader, recovery or production change was included. Paper-specific review and release requirements remain separately recorded; Compass remains paused and its reader disabled.
+Three additional official FEMA taxonomy addresses support a retrospective five-mission-area/32-capability coverage check: two bodies reviewed and one original route returning HTTP 403, with competent alternatives recovered. This supplemental addition raises the register from 198 to 201 unique addresses and 177 to 180 endpoint records; all remain Unvetted Candidate. The unavailable route is retained with its limitation. One existing FDA document format is corrected from landing page to PDF without changing its address or evidentiary status. These are research-accounting corrections, not new white-paper findings or operational capability ratings.
+
 
 
 
