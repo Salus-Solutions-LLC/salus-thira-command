@@ -62,3 +62,7 @@ For every new white paper, customer inquiry, Protection Advisor Part 1, consente
 |---|---|---|---:|---:|---|---|
 
 No SAL-D124 work-triggered candidate address is pending at this baseline.
+
+## Clinic topic expansion 16 November 2026
+
+Base `412764b94c260a7fdea1713c641d0e9d6af57e45`; task-triggered two-pass clinic/outpatient research and supplemental CERC/NIST-method review. Candidate adds 67 unique public addresses to 126 existing addresses, for 193 unique table destinations. All additions remain **Unvetted Candidate**. Existing IDs and addresses are preserved. Public healthcare/safety/continuity sources and live Salus service descriptions only; no Member records or operational collection. Source-specific original-review portions, contrary evidence, access barriers, rights and where-used links remain in the clinic research capture. This list update does not establish full Library consideration, source qualification, completed white-paper research, human publication approval or deployed capability. SAL-D140 check/merge/readback pending; no broader change authorized by this entry.

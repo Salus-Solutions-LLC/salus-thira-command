@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 16 November 2026 — Clinic research addresses prepared for governed candidate retention
+
+Routine SAL-D124/SAL-D127/SAL-D140 topic-source maintenance adds 67 public addresses (126 to 193 unique endpoint-table destinations) from two-pass clinic/outpatient research and selected CERC/NIST method follow-up. Entries remain Unvetted Candidate; existing IDs/provenance are preserved. No source qualification, Member finding, external report release, software, connector, access, reader, assessment, recovery or production change is included. All required checks and exact merge/readback remain to be verified before claiming authoritative-list retention. Full current Knowledge consideration and human review gates for the associated paper remain separate.
+
+
 ## 16 November 2026 — Read-only inventory reconciliation candidate prepared; execution awaits exact-version approval
 
 **Objective and current authority:** Marc requested read-only reconciliation of the inventory drift from failed run 43925327558, preservation of all twenty receipts, paused retries and holds, a stable inventory, independent verification/cleanup and next steps. Current governed base is `977377ed2541027b1b90945fe0b02132093f1430`. The prior stop and verified cleanup remain authoritative; current inventory membership and the identity of the net increase have not yet been measured by this candidate.
