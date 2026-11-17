@@ -10,7 +10,7 @@
   ],
   "sources": {
     "AGENTS.md": "a15ceed9ecc02e98e0a22d7f3d0ca2b4291f74009a2084c6990df15fb4938ebe",
-    "APPROVED_ARTIFACTS.md": "73600c198e2adf699394d29779476993f5da291e7501f6f675a7ea0eb6a7b7d8",
+    "APPROVED_ARTIFACTS.md": "92766139a6e5b439c119d0b70eee0d47600df116632af4d02992e62456e0104e",
     "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md": "8c2b485d105fff0403e15c17c864f9b3b351988cf7ff189e36f970ddad6fa76d",
     "SALUS_ASSESSMENT_REPORT_PURPOSE_AND_EDITORIAL_STANDARD.md": "da3798e4e66518e80e99b221601072268299c606cd7cf14cf3c5cecca37950b4",
     "SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md": "e1c08668dfec2b175d6730f105980c07e9e96484223df82d1edad92d9d3af804",
@@ -176,9 +176,17 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-1fd34257444d44111e61a809",
+      "id": "REQ-e9ab5b4585bf572e6be918ba",
       "source": "APPROVED_ARTIFACTS.md",
       "line": 5,
+      "section": "Salus Solutions — Approved Artifact Register",
+      "text_sha256": "a198b15b3156c78a16d5f0cccaa3cdd094b26a24679e3952bc79fbc727bbb436",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-1fd34257444d44111e61a809",
+      "source": "APPROVED_ARTIFACTS.md",
+      "line": 6,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "34eb7fbec1d758a821bb883368f23c823b36ef6347771db34261bbcde0b4f236",
       "decision_ids": []
@@ -186,7 +194,7 @@
     {
       "id": "REQ-1da90ccf79486c761a3bc87c",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 6,
+      "line": 7,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "6eb60dbe93b2a1e4e069ccbfa5d9d7702175c9b42fe2ab64611290ae79472627",
       "decision_ids": []
@@ -194,7 +202,7 @@
     {
       "id": "REQ-8fd68140c20b15c3fdd24a14",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 7,
+      "line": 8,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "6b2a352579c06e6f771f38a4f19f2b4969e5bc1a626f9588cf869f2b11b3a4b3",
       "decision_ids": []
@@ -202,7 +210,7 @@
     {
       "id": "REQ-e86e1df58d33a10c21bf53d6",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 8,
+      "line": 9,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "775df5377c3df3d1c568f758c03069e4803b2a68516aea54912e1c8758efc950",
       "decision_ids": [
@@ -212,7 +220,7 @@
     {
       "id": "REQ-f54aa7b015c6f5ad1bff6d44",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 9,
+      "line": 10,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "8e8521136db80ea4b7c0ca5a7e6e58cf2c6ed91a029f5840dee51124f7abdff6",
       "decision_ids": [
@@ -222,7 +230,7 @@
     {
       "id": "REQ-154bdd219319a29b7b70609b",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 10,
+      "line": 11,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "39d6aa22ac1b2eb9b97a67356ec9d15428572f8f29546223373da3222a575af1",
       "decision_ids": [
@@ -232,7 +240,7 @@
     {
       "id": "REQ-889c04a83a2d29e6e59c3141",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 11,
+      "line": 12,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "3e0936d69ad85264640d8a840a0b1181d7ca44ba62bbc5dabed4c9edce7c6aa2",
       "decision_ids": [
@@ -242,7 +250,7 @@
     {
       "id": "REQ-e4d0f549d3745d238e8d90f2",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 12,
+      "line": 13,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "2f3639efae38005256d14af529ef89f00f8003469fa01c800898a0a4e0f919d9",
       "decision_ids": [
@@ -252,7 +260,7 @@
     {
       "id": "REQ-093094b9be69b8e8f7abcc0c",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 13,
+      "line": 14,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "aca9842ea5d72465489513e2adfc703d7fad58d284276dc27cae32804a75fca6",
       "decision_ids": [
@@ -262,7 +270,7 @@
     {
       "id": "REQ-5f7eb11be5bda033b76198b0",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 14,
+      "line": 15,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "e6c137527c0b906818b1716588a1357a79d8c34a88b79576ac24f45bb2608f2e",
       "decision_ids": [
@@ -272,7 +280,7 @@
     {
       "id": "REQ-7696e8c08ec6cb24ebbdac01",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 15,
+      "line": 16,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "f13d63d2cc3c6b196100198270e4b9e604f5736319d746cb0545ef7fb5abdbcf",
       "decision_ids": [
@@ -282,7 +290,7 @@
     {
       "id": "REQ-0c5de55c092712370b574a0b",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 16,
+      "line": 17,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "adab651b20ae057b17a25ad63abcad985bc94dea109459d1a49fb3e34dc4f8c0",
       "decision_ids": [
@@ -292,7 +300,7 @@
     {
       "id": "REQ-14543d4c59a6a7bd451ab22d",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 17,
+      "line": 18,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "f0d390be4c6c17d6c36dbbf2588111a524c0e131a38134a8217854e1b713ea4a",
       "decision_ids": [
@@ -302,7 +310,7 @@
     {
       "id": "REQ-6d4d780604533f5d7cc8addd",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 18,
+      "line": 19,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "37973307afeadf890c6cc370cf4f07958e892dddad5dbe585b3af4dbe80ebe2e",
       "decision_ids": [
@@ -312,7 +320,7 @@
     {
       "id": "REQ-94d4083b0e3b37e50dd04ce4",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 19,
+      "line": 20,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "de86bd89b2e427bd6c46070973ab72b15e3a40dc6df162e254a1eb7abfe1f198",
       "decision_ids": [
@@ -323,7 +331,7 @@
     {
       "id": "REQ-ca48df79ccb40d1cb8bde1da",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 20,
+      "line": 21,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "46a3be3e9835ff0b1bd5458d45c327482b675553964c52e821c299b3a2b05349",
       "decision_ids": [
@@ -334,7 +342,7 @@
     {
       "id": "REQ-b663cddbae089a6fb567edc0",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 21,
+      "line": 22,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "3d40b39e041c963b668edc50609b1c97fac218568792fe33dc5045210d78b206",
       "decision_ids": [
@@ -345,7 +353,7 @@
     {
       "id": "REQ-8407597b44c818f9eaf6351b",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 22,
+      "line": 23,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "3acd6b15dd8d9b72c2d413a3735808ac245ec8703dc719bb8017dd42975abbc8",
       "decision_ids": [
@@ -355,7 +363,7 @@
     {
       "id": "REQ-730804d8b9ff726997057f5b",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 23,
+      "line": 24,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "e46e8d5a957e3b4043961dd5cdbf5080c93e032373014b6700bca434c79d904c",
       "decision_ids": [
@@ -366,7 +374,7 @@
     {
       "id": "REQ-62f92e63a15c432d6f86d315",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 24,
+      "line": 25,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "ba78994bcb5fb3263298279413906e2a6603c1e35cb05b94903e75bdf04ee421",
       "decision_ids": [
@@ -377,7 +385,7 @@
     {
       "id": "REQ-985c1aac0a4e86a51f592c5e",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 25,
+      "line": 26,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "044619bf6ed98fcb49eb78a8fa1116d9a668439798443774f6ad6b6c84734e5f",
       "decision_ids": [
@@ -388,7 +396,7 @@
     {
       "id": "REQ-05e1b05eb66b7081b58bfc85",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 26,
+      "line": 27,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "cdfe703f98490413559f9af0176c93c718655b8f366b45c81b2e49b93492d26c",
       "decision_ids": [
@@ -400,7 +408,7 @@
     {
       "id": "REQ-79058450c737405714491cc0",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 27,
+      "line": 28,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "ae646225e3fc01f222a5800803186419fb337272588bb4e0a10ad41f850610d1",
       "decision_ids": [
@@ -412,7 +420,7 @@
     {
       "id": "REQ-c32a791c976330181537c8d7",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 28,
+      "line": 29,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "664d7316c0af3e5fd172d931496b717560658331b1830b88f8cf1863218467ae",
       "decision_ids": []
@@ -420,7 +428,7 @@
     {
       "id": "REQ-881fd732f954d76e86f6cc0f",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 29,
+      "line": 30,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "3e354262153b2c89b318abe48c2e010e4aa81cb1da3dad1cb6e95575773b3b9b",
       "decision_ids": []
@@ -428,7 +436,7 @@
     {
       "id": "REQ-514c13a38709f32e3b6cbbc1",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 30,
+      "line": 31,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "b56c3027eb85b5349dc29e66f34c271820306bc61a8c5f7563cc63a438d4a7d7",
       "decision_ids": []
@@ -436,7 +444,7 @@
     {
       "id": "REQ-90db2868fa8702c6d7e90ec0",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 31,
+      "line": 32,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "4182c671012f4ecbdc8ebe4f4a4aeaff74e8d6e743f45c611070396a7fc2b394",
       "decision_ids": []
@@ -444,7 +452,7 @@
     {
       "id": "REQ-1eb910859f131ac34d2550e4",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 32,
+      "line": 33,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "ced02b6af209c4ae29b23d9d9d51bda9dc4d88c918a44ebac2f9e78c2125cc15",
       "decision_ids": [
@@ -457,7 +465,7 @@
     {
       "id": "REQ-695468ef0a9f4b292e7d14ad",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 33,
+      "line": 34,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "5a9b20ee9fcd80876bb8f71548cababd160fb6333159aa02175bd4048aea6283",
       "decision_ids": [
@@ -470,7 +478,7 @@
     {
       "id": "REQ-6c244d7a72d3c6b6d645f9ed",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 34,
+      "line": 35,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "32a719b5646712409ad764dc83bc33fd3e66eb525046d7bf6010b598ab9cfc28",
       "decision_ids": [
@@ -481,7 +489,7 @@
     {
       "id": "REQ-33e9b949c14d75a94f4bc781",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 35,
+      "line": 36,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "45c1fbd47a13d4b26c87c89db69b9d46e542b4b8c30bb05749442b521bfcedf8",
       "decision_ids": [
@@ -492,7 +500,7 @@
     {
       "id": "REQ-35895396efb20aa0ace971cd",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 36,
+      "line": 37,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "a5188d6ef65f3e9876e2927f1cfeae78c65c83d37ceeb44a5c32fc7d56b7799c",
       "decision_ids": [
@@ -502,7 +510,7 @@
     {
       "id": "REQ-45d899e8236c0d2e0952c10e",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 37,
+      "line": 38,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "eb8e1e27da166918de8fa29a68c71526f9fd4c3bc26aea69280dc6334dac1b95",
       "decision_ids": [
@@ -512,7 +520,7 @@
     {
       "id": "REQ-ca0f961afc6823c8609519d1",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 38,
+      "line": 39,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "05399f4c893e7fec63b2c3d7a4710b2cd7a4dfd312b3196deccb7387dc0d4df0",
       "decision_ids": [
@@ -522,7 +530,7 @@
     {
       "id": "REQ-29078059d6f376dc79973181",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 39,
+      "line": 40,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "c754e880311ba4c1efaca1135f6689344d942a4d4ed34d756a8f8e77f0586e94",
       "decision_ids": [
@@ -532,7 +540,7 @@
     {
       "id": "REQ-722c98862c053e03a915ac48",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 40,
+      "line": 41,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "473399c0ddb3f672a1bcdeb44be8823163170881599fdc36e960b1e3ba5fdddc",
       "decision_ids": [
@@ -542,7 +550,7 @@
     {
       "id": "REQ-cb8f71d09f2619e63b64b84c",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 41,
+      "line": 42,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "f36444fb0c0145b4c32dda010ca51d26a983268fa64ddd91772c491976efa68d",
       "decision_ids": [
@@ -552,7 +560,7 @@
     {
       "id": "REQ-c1898bfe821e641ec1a75939",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 42,
+      "line": 43,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "3a459a217080f3b71eb381cfce4dd54b9642373f5d2850793b621a42be691934",
       "decision_ids": [
@@ -562,7 +570,7 @@
     {
       "id": "REQ-49460addbd35349ffd943bad",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 43,
+      "line": 44,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "53b23ed37bae16d48f1d0070495acedad40f92963e3ee01d149279a9667c17da",
       "decision_ids": [
@@ -572,7 +580,7 @@
     {
       "id": "REQ-844da1c74abedbedb964f694",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 44,
+      "line": 45,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "ba9608689ba53dfc3f850f0765de999d195b039cec17cad8dae42f0f7173b540",
       "decision_ids": [
@@ -582,7 +590,7 @@
     {
       "id": "REQ-43e175a8cc78aa173fdbb690",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 45,
+      "line": 46,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "9ec8fb6a69578c95c30e5aca290dda843e54306360e3ce5bf5aa6c1217c9624d",
       "decision_ids": [
@@ -592,7 +600,7 @@
     {
       "id": "REQ-d3378431729f575964ac368c",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 46,
+      "line": 47,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "c17ac9dd76c4b729c4d90be8bbc1fdbcf72890fd717732f3ec85c6f95e7461b4",
       "decision_ids": [
@@ -602,7 +610,7 @@
     {
       "id": "REQ-7dd34672531f7eecb2f237fa",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 47,
+      "line": 48,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "79b7326559dccee32fd608589f99031380f716eb677dee057245929b8285eb94",
       "decision_ids": [
@@ -612,7 +620,7 @@
     {
       "id": "REQ-9c26e052d4d6e95bb4748bfe",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 48,
+      "line": 49,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "cd6a80385b47c9a74d26e7205c19d49a38d0d15b050daeabc07eb8bc5d46c13d",
       "decision_ids": [
@@ -622,7 +630,7 @@
     {
       "id": "REQ-a4307b427a5fe4b4aaa39fac",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 49,
+      "line": 50,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "947c9b76e7fc59465453853cd13af93c42d7b3013bee413dfa02462a05799fc9",
       "decision_ids": [
@@ -632,7 +640,7 @@
     {
       "id": "REQ-41b19949f70bd15b198e593d",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 50,
+      "line": 51,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "98bd9983ab96c862aaf52c64a39c228b2ac9d99afe440634ba001c649f9de2e7",
       "decision_ids": [
@@ -642,7 +650,7 @@
     {
       "id": "REQ-f2619014b798076550cc8e83",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 51,
+      "line": 52,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "90d37ceebb23eb52e578024db4b01427032cd48a124beab23b36f7f4d3f94686",
       "decision_ids": [
@@ -652,7 +660,7 @@
     {
       "id": "REQ-36af04e1f126f5b0a84e2e50",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 52,
+      "line": 53,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "210225f7b256adcf8ca63112e9c92f0f71a03340d5d60df4aabe5ce5a54a356a",
       "decision_ids": [
@@ -665,7 +673,7 @@
     {
       "id": "REQ-adb7027c85fb4ff06bdc5896",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 53,
+      "line": 54,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "cde0fb57743d798b9c5a9b1e4cdf39b7e7908ca3f9c80d02489053aaedb4f164",
       "decision_ids": []
@@ -673,7 +681,7 @@
     {
       "id": "REQ-e0a48b3e8251cb24d66f3d26",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 54,
+      "line": 55,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "9403a19d6c9920c1fe273c7406132360573b4e8d38e15be0b157a33f6bd1c3b0",
       "decision_ids": []
@@ -681,7 +689,7 @@
     {
       "id": "REQ-da2d68a7ec9abf3dcd97ace5",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 55,
+      "line": 56,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "1e0de7dc383429ea1f83b59fd02ff5fa6a12347b1936859a0c8c3b1c12bb5057",
       "decision_ids": []
@@ -689,7 +697,7 @@
     {
       "id": "REQ-6d23202562254958c0198daf",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 56,
+      "line": 57,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "6aa4183c40781153a5faefbbbae175e28bdd42fe7c9c76d2083dda20a5825ec4",
       "decision_ids": [
@@ -699,7 +707,7 @@
     {
       "id": "REQ-602eda5af8f879872210cab2",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 57,
+      "line": 58,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "446cf0b2497e98ac156a18daa9fadcc05836b11d83ad75a7b57f7f2dbcec3818",
       "decision_ids": []
@@ -707,7 +715,7 @@
     {
       "id": "REQ-4771669f9b3109e874ddf7b5",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 58,
+      "line": 59,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "9c48ea21d003d8a3d629d8efff489f755b4de53bfe5901c08fd45104c32391c6",
       "decision_ids": []
@@ -715,7 +723,7 @@
     {
       "id": "REQ-db30727e48edba4fae6889bf",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 59,
+      "line": 60,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "2aa0e719625be4bf5711e067ed64598e4bec15df2902625a9016b39831523e85",
       "decision_ids": []
@@ -723,7 +731,7 @@
     {
       "id": "REQ-3a2ad3863a995c8060bc841b",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 60,
+      "line": 61,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "23cd14ccab2b799280f71c0cf5d172639b74b7587abdbaa6ed2e7b906d2afbc7",
       "decision_ids": []
@@ -731,7 +739,7 @@
     {
       "id": "REQ-44930a041a991f7c4ce638bc",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 61,
+      "line": 62,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "eced1b9d8366afd0b3cac459413fcfd3def3a828575da149a53ad3d4e9909723",
       "decision_ids": [
@@ -741,7 +749,7 @@
     {
       "id": "REQ-1a14b6f49588bc7c5ee6b4da",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 63,
+      "line": 64,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "df586a026555854c7866323708c380bf26609b5d0552fc3bf8669edcb3956a2f",
       "decision_ids": [
@@ -751,7 +759,7 @@
     {
       "id": "REQ-a253c2eb89e761af27a3d884",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 65,
+      "line": 66,
       "section": "Salus Solutions — Approved Artifact Register",
       "text_sha256": "8d38d8a3728f6b5f8c2e9698c50e5c255f38983148179ea93a0547b09a19b790",
       "decision_ids": [
@@ -761,7 +769,7 @@
     {
       "id": "REQ-5f8868a87f2d19806cf1e581",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 67,
+      "line": 68,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D055 candidate Word templates",
       "text_sha256": "3fd7dec16fb7a79594a75ba2cb1e81746b025f9e17f2f64a83efb685d124b985",
       "decision_ids": [
@@ -771,7 +779,7 @@
     {
       "id": "REQ-6a83fb5078403decba63468d",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 69,
+      "line": 70,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D055 candidate Word templates",
       "text_sha256": "24712ead6c6a8e804964fccffe0bc055dd7ef90c7a7b4e9890c071c9db9e0ee2",
       "decision_ids": [
@@ -783,7 +791,7 @@
     {
       "id": "REQ-61846235141eff9ef00f17d8",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 71,
+      "line": 72,
       "section": "Salus Solutions — Approved Artifact Register / Protection Advisor report authority",
       "text_sha256": "770afca45597d8f675894608adee9b5b370894330b62a4b7c4b8c20c6529825f",
       "decision_ids": []
@@ -791,7 +799,7 @@
     {
       "id": "REQ-77dda5acf5574634f06bb0ad",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 73,
+      "line": 74,
       "section": "Salus Solutions — Approved Artifact Register / Protection Advisor report authority",
       "text_sha256": "0be69ce7c81b5d3ca03cdecdf44506091367b15bba1652c92ad43583d10e6cd0",
       "decision_ids": []
@@ -799,7 +807,7 @@
     {
       "id": "REQ-2d68da3c70ede6c040d69bbc",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 75,
+      "line": 76,
       "section": "Salus Solutions — Approved Artifact Register / Protection Advisor report authority",
       "text_sha256": "2f062737341446ad4e4ead389a66251258071f198993f9f7d522013f7f0286a5",
       "decision_ids": []
@@ -807,7 +815,7 @@
     {
       "id": "REQ-6639ccdc0abbb54b7202be5d",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 77,
+      "line": 78,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D057–SAL-D058 method authorities",
       "text_sha256": "51288660e3a125947ec2280a86f54be7eb380177d7d1663197118a46c09f0376",
       "decision_ids": [
@@ -818,7 +826,7 @@
     {
       "id": "REQ-e2b1146857ceee30de8ed4db",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 79,
+      "line": 80,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D057–SAL-D058 method authorities",
       "text_sha256": "de909a818f77b614fc778d1021d6629dc17cc631083e1f0f87e5056db28bb3c2",
       "decision_ids": [
@@ -828,7 +836,7 @@
     {
       "id": "REQ-cddd96e8a4244d178c72b55e",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 81,
+      "line": 82,
       "section": "Salus Solutions — Approved Artifact Register / Artifact-control rule",
       "text_sha256": "988a26ed91a9e082a1355e9599c681259123e5a7daa6ae113e6359cf9ee8f14c",
       "decision_ids": []
@@ -836,7 +844,7 @@
     {
       "id": "REQ-cdc8eab52f3ca25ea6883067",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 83,
+      "line": 84,
       "section": "Salus Solutions — Approved Artifact Register / Artifact-control rule",
       "text_sha256": "0e90baa0b12fef054731c092135702a80d55c59718460458097b73b0a3827a0e",
       "decision_ids": []
@@ -844,7 +852,7 @@
     {
       "id": "REQ-f50b7c7a138b7cc6a4851a28",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 85,
+      "line": 86,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D044 member report boundary",
       "text_sha256": "74b73df181c960912f729fd8829b1ad809539bdf69cd18c13aefb2fb77d75961",
       "decision_ids": [
@@ -854,7 +862,7 @@
     {
       "id": "REQ-0feefd452f2974cf46da7d9e",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 87,
+      "line": 88,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D044 member report boundary",
       "text_sha256": "23dcb72ce15cc23a884a07cdf3164921d02041a61025d78128dc61853a0a321f",
       "decision_ids": []
@@ -862,7 +870,7 @@
     {
       "id": "REQ-c1df557f79ce1191398a85da",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 89,
+      "line": 90,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D045 and SAL-D046 report artifact boundary",
       "text_sha256": "c3955efd26a4ebbd81c358856a1f74a882af7908755054c61d03cf3433bb8f6c",
       "decision_ids": [
@@ -873,7 +881,7 @@
     {
       "id": "REQ-ae274c158f1e85e634b4133a",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 91,
+      "line": 92,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D045 and SAL-D046 report artifact boundary",
       "text_sha256": "ad4921e8d0504dac51376afa1207fb8e3f02268130b31616e6c9e34e1e288e9c",
       "decision_ids": [
@@ -884,7 +892,7 @@
     {
       "id": "REQ-6bd069ed1126cefa636d2ebf",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 93,
+      "line": 94,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D047 service-discovery impact",
       "text_sha256": "0c36d186055f24a650351fbfef983dec8faf9c6f0417d34a36b63d71bc9d4364",
       "decision_ids": [
@@ -894,7 +902,7 @@
     {
       "id": "REQ-c62a70faf07f7519e71e4c37",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 95,
+      "line": 96,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D047 service-discovery impact",
       "text_sha256": "89e4939625429ec0035e90d2d6409994b1696c8a207afe8ffc7aecda740e0c81",
       "decision_ids": [
@@ -906,7 +914,7 @@
     {
       "id": "REQ-44edb7740425331581d35e13",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 97,
+      "line": 98,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D050 multidisciplinary assurance impact",
       "text_sha256": "d3d4d1b3960d736c1fd5a22057601a9fd4da5666bce3c4ae9217ebb4fd38575a",
       "decision_ids": [
@@ -916,7 +924,7 @@
     {
       "id": "REQ-e148c46d1b6647a3e58e52d2",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 99,
+      "line": 100,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D050 multidisciplinary assurance impact",
       "text_sha256": "233d48f9a68d64002054692a5429c7ffad6e7ea5c8dee0f8cffef358f8da6bcf",
       "decision_ids": [
@@ -929,7 +937,7 @@
     {
       "id": "REQ-2e37d30d15e9ed62a4be2966",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 101,
+      "line": 102,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D096 module authority and candidate-artifact boundary",
       "text_sha256": "3465039fed326b8253193734f66670e161954f5551060bfcfad0a9181e90573e",
       "decision_ids": [
@@ -939,7 +947,7 @@
     {
       "id": "REQ-7e4216c0f283e0c3d6dc37be",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 103,
+      "line": 104,
       "section": "Salus Solutions — Approved Artifact Register / SAL-D096 module authority and candidate-artifact boundary",
       "text_sha256": "0194f9f6a31250ae02644ff2269941c604de13fa8ff9616cd2e6728f6af3927b",
       "decision_ids": []
@@ -947,7 +955,7 @@
     {
       "id": "REQ-beeb6037290b6c50e3b765a5",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 107,
+      "line": 108,
       "section": "Salus Solutions — Approved Artifact Register / Assessment report editorial authority [SAL-D136]",
       "text_sha256": "f7835af311dead277f5482b6404f44a7ab9d48f3cb9a509b915ecdff0d25b202",
       "decision_ids": [
@@ -957,7 +965,7 @@
     {
       "id": "REQ-bf9bff6118f44e0e452529c7",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 109,
+      "line": 110,
       "section": "Salus Solutions — Approved Artifact Register / Assessment report editorial authority [SAL-D136]",
       "text_sha256": "79b216264f9b7f52b7094b3bba994ba9010d6fd5c59a6621430b22a0e614853f",
       "decision_ids": []
@@ -965,7 +973,7 @@
     {
       "id": "REQ-5538b9fc4e432ca983e451d2",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 110,
+      "line": 111,
       "section": "Salus Solutions — Approved Artifact Register / Assessment report editorial authority [SAL-D136]",
       "text_sha256": "23cca02b74f386463efa24796c7a9011b0d2c93f0c38b4d15d5d276205b59b43",
       "decision_ids": []
@@ -973,7 +981,7 @@
     {
       "id": "REQ-179452ab89ee2deb460acfdb",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 111,
+      "line": 112,
       "section": "Salus Solutions — Approved Artifact Register / Assessment report editorial authority [SAL-D136]",
       "text_sha256": "1fd4824773f495b547bf9abf742fea392a6217840f21a89a970d3f8d4126f991",
       "decision_ids": []
@@ -981,7 +989,7 @@
     {
       "id": "REQ-2d50494ba41f1d6e7046d631",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 114,
+      "line": 115,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "0c17e1658aca25a07818ab6cd809d28d4bdc3fd864eaa47d4f7dfb310e602fc3",
       "decision_ids": [
@@ -991,7 +999,7 @@
     {
       "id": "REQ-007acd52883a8dcfc7848840",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 116,
+      "line": 117,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "79b216264f9b7f52b7094b3bba994ba9010d6fd5c59a6621430b22a0e614853f",
       "decision_ids": []
@@ -999,7 +1007,7 @@
     {
       "id": "REQ-b6a50de32b4ae35d137a2e4b",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 117,
+      "line": 118,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "23cca02b74f386463efa24796c7a9011b0d2c93f0c38b4d15d5d276205b59b43",
       "decision_ids": []
@@ -1007,7 +1015,7 @@
     {
       "id": "REQ-de6055fe595dce96accf4c9c",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 118,
+      "line": 119,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "bf7b7348e59e2b9cd0edb5976fed5590f425923523b6bae83542da41f6fc0f14",
       "decision_ids": [
@@ -1017,7 +1025,7 @@
     {
       "id": "REQ-476c46b8c6509959020420b2",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 119,
+      "line": 120,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "e355c5e5bd4ebed4810bf717023890580f480df38dc2b97c6922bc0ffa396689",
       "decision_ids": [
@@ -1027,7 +1035,7 @@
     {
       "id": "REQ-ca2c798bbfe155641195c84e",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 120,
+      "line": 121,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "54e0bcb2af569eb0cb6486ff640e6790f23b59551e3196f44cfe5d40ec884058",
       "decision_ids": []
@@ -1035,7 +1043,7 @@
     {
       "id": "REQ-ba6a849afec8944477cfdcd9",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 121,
+      "line": 122,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "b92faf8563462a330224325732de8af8a11efb4acedb63650128676c8e3d378b",
       "decision_ids": []
@@ -31411,5 +31419,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "883eb581b25c169f2073c95fad904a8d1203a653dec401eea749136d08680901"
+  "register_sha256": "e1a5827e706d9eb18cc12c54c6adc82ec616b743a6345ec869d9771c992a5a3d"
 }
