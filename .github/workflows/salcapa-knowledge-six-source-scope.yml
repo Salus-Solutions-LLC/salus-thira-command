@@ -299,3 +299,30 @@ jobs:
           python tools/knowledge_inventory_azure_transport.py absent --url "https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.App/jobs?api-version=2025-07-01" --name "$JOB_NAME"
           echo "TASK_KNOWLEDGE_ISOLATED_JOB_REMOVED=1"
           test "$RUNTIME_OK" = "1"
+      - name: Clear fixed temporary evidence and credentials
+        if: always()
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          names = ('knowledge-task-search.json','salcapa-consideration-app.json',
+                   'salcapa-consideration-worker.json','recovery-app-before.json',
+                   'recovery-worker-before.json','recovery-deployment.json',
+                   'recovery-execution-name.txt','recovery-owned-job.json',
+                   'recovery-platform-execution.json','recovery-start.json',
+                   'task-knowledge-search.log','task-search-after.json',
+                   'task-search-app-after.json','task-search-before.json',
+                   'task-search-cleanup.json','task-search-worker-after.json')
+          for name in names:
+              path = Path('/tmp') / name
+              assert path.parent.resolve() == Path('/tmp').resolve()
+              path.unlink(missing_ok=True)
+          assert all(not (Path('/tmp') / name).exists() and not (Path('/tmp') / name).is_symlink() for name in names)
+          print('TASK_KNOWLEDGE_FIXED_TEMPORARY_FILES_CLEARED=1')
+          PY
+          if az account show --only-show-errors >/dev/null 2>&1; then
+            az account clear --only-show-errors
+          fi
+          if az account show --only-show-errors >/dev/null 2>&1; then exit 1; fi
+          echo "TASK_KNOWLEDGE_CREDENTIALS_CLEARED=1"
+

@@ -92,6 +92,8 @@ class ScopeTests(unittest.TestCase):
   self.assertIn('always_collect_before_cleanup',text)
   self.assertIn('TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=1',text)
   self.assertIn('TASK_KNOWLEDGE_ISOLATED_JOB_REMOVED=1',text)
+  self.assertIn('TASK_KNOWLEDGE_FIXED_TEMPORARY_FILES_CLEARED=1',text)
+  self.assertIn('TASK_KNOWLEDGE_CREDENTIALS_CLEARED=1',text)
 
 class ScopeDatabaseTests(fixture.OutsideTests):
  """Exercise actual new module captures against genuine database read-only transactions."""
