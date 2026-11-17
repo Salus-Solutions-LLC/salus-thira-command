@@ -31,6 +31,8 @@ Every adoption, scope-extension, byte-read, preflight, processing, retry-resume,
 
 Operation: salus-six-source-baseline-scope-proposal-20261116. Isolated job: salcapa-sixscope-b48224. The actual pre-Azure guard binds the complete activation, twenty source-file hashes, governing rows and five-module payload; reject replay. No workflow_dispatch route. A merge that changes the new activation on development/salcapa-platform reaches the protected environment gate only after exact-version approval.
 
+The new proposal and predecessor drift workflow use distinct PR-only validation queues. Their push/operational branches retain the shared salcapa-knowledge-diagnostic queue and cancel-in-progress=false. This prevents validation-only pending runs from cancelling one another without permitting overlapping protected operations or replaying earlier activations. No other predecessor workflow behavior is changed.
+
 Keep execution-only v3.276 and deployed v3.223 app/worker unchanged. Preserve 0.5 CPU / 1 GiB, 786,432 KiB peak guard, 120-second statement timeout, 900-second job limit, bounded GET retries, no submit/start retries and terminal collection before cleanup. Collector retains OUTSIDE_COHORT, OUTSIDE_DRIFT and SCOPE_PROPOSAL proof.
 
 Require platform success, full independent report/proposal readback, app/worker identity/template/configuration equality, ownership-checked job deletion, all-page namespace absence and temporary/credential cleanup before operational closeout. Candidate tests are not fresh runtime or cleanup proof.
