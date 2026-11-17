@@ -94,6 +94,8 @@ class ScopeTests(unittest.TestCase):
   self.assertIn('TASK_KNOWLEDGE_ISOLATED_JOB_REMOVED=1',text)
   self.assertIn('TASK_KNOWLEDGE_FIXED_TEMPORARY_FILES_CLEARED=1',text)
   self.assertIn('TASK_KNOWLEDGE_CREDENTIALS_CLEARED=1',text)
+  self.assertIn("github.event_name == 'pull_request' && format('salcapa-six-source-scope-pr-{0}'",text)
+  self.assertIn("|| 'salcapa-knowledge-diagnostic'",text)
 
 class ScopeDatabaseTests(fixture.OutsideTests):
  """Exercise actual new module captures against genuine database read-only transactions."""
