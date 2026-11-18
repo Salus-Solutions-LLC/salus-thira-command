@@ -5,6 +5,7 @@ on an issued original. Exact-file rendering/accessibility remain separate checks
 """
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from lxml import etree
 
 RULE = {0: (240, 240), 1: (240, 120)}  # Word twips: 20 per point
 
@@ -62,8 +63,11 @@ def _set(ppr, level):
 
 def _stories(document):
     for part in document.part.package.parts:
-        if str(part.partname).startswith('/word/') and hasattr(part, 'element'):
-            yield str(part.partname), part.element
+        name=str(part.partname)
+        if not name.startswith('/word/') or not name.endswith('.xml'): continue
+        root=part.element if hasattr(part,'element') else etree.fromstring(
+            part.blob,etree.XMLParser(resolve_entities=False,no_network=True))
+        yield part,name,root
 
 
 def apply_heading_spacing(document):
@@ -78,7 +82,8 @@ def apply_heading_spacing(document):
             if ppr is None:
                 ppr = OxmlElement('w:pPr'); style.append(ppr)
             _set(ppr, level)
-    for _, root in _stories(document):
+    for part, _, root in _stories(document):
+        changed=False
         for p in root.iter(qn('w:p')):
             level = _paragraph_level(p, styles)
             if level in RULE:
@@ -86,6 +91,9 @@ def apply_heading_spacing(document):
                 if ppr is None:
                     ppr = OxmlElement('w:pPr'); p.insert(0, ppr)
                 _set(ppr, level)
+                changed=True
+        if changed and not hasattr(part,'element'):
+            part._blob=etree.tostring(root,encoding='UTF-8',xml_declaration=True,standalone=True)
     return document
 
 
@@ -115,7 +123,7 @@ def heading_spacing_findings(document):
         if style.get(qn('w:type')) == 'paragraph':
             level = _style_level(sid, styles)
             if level in RULE: check(chain(sid), level, 'style:' + sid)
-    for name, root in _stories(document):
+    for _, name, root in _stories(document):
         for index, p in enumerate(root.iter(qn('w:p'))):
             level = _paragraph_level(p, styles)
             if level in RULE:

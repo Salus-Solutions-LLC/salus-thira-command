@@ -7,6 +7,20 @@ from docx.shared import Pt
 from salus_document_styles import apply_heading_spacing, heading_spacing_findings
 
 class HeadingSpacingTests(unittest.TestCase):
+    def test_generic_footnote_part_survives_save_and_reload(self):
+        from docx.opc.part import Part
+        from docx.opc.packuri import PackURI
+        from docx.opc.constants import RELATIONSHIP_TYPE as RT
+        from io import BytesIO
+        d=Document()
+        xml=b'<w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:footnote w:id="1"><w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:t>Footnote heading</w:t></w:r></w:p></w:footnote></w:footnotes>'
+        part=Part(PackURI('/word/footnotes.xml'),'application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml',xml,d.part.package)
+        d.part.relate_to(part,RT.FOOTNOTES)
+        self.assertTrue(heading_spacing_findings(d))
+        apply_heading_spacing(d);b=BytesIO();d.save(b);b.seek(0);reloaded=Document(b)
+        self.assertEqual(heading_spacing_findings(reloaded),[])
+        self.assertIn(b'Footnote heading',next(p.blob for p in reloaded.part.package.parts if str(p.partname)=='/word/footnotes.xml'))
+
     def test_detects_direct_override_after_correct_style(self):
         d=Document(); p=d.add_heading('Heading',1); apply_heading_spacing(d)
         p.paragraph_format.space_after=Pt(5)
