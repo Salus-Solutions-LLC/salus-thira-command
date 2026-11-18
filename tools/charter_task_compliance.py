@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 VERSION = 1
+MIN_SUBSTANTIVE_PASSES = 8
 ANALYTICAL_LENSES = {'assumptions', 'methodologies', 'evidence_and_consequences', 'recommendations'}
 ROOTS = (
     'SALUS_PROGRAM_CHARTER.md', 'SALUS_DECISION_REGISTER.md',
@@ -112,7 +113,7 @@ def new_task(catalog, task_id, objective, task_type='unclassified'):
     if not task_id.strip() or not objective.strip():
         raise ValueError('task identity and objective required')
     return {'schema_version': VERSION, 'task_id': task_id, 'objective': objective,
-            'task_type': task_type, 'model_reminder': {}, 'analytical_review': {},
+            'task_type': task_type, 'model_reminder': {}, 'analytical_review': {}, 'review_passes': [],
             'register_sha256': catalog['register_sha256'],
             'scope': {'authorization': '', 'boundary': '', 'limitations': []},
             'requirements': [{'id': u['id'], 'state': 'pending', 'reason': '',
@@ -123,6 +124,67 @@ def new_task(catalog, task_id, objective, task_type='unclassified'):
             'evidence': {}, 'locations': {}, 'capture': {}, 'outputs': [],
             'protected_actions': [], 'corrective_actions': [], 'holds': {}, 'verification_owner': 'Salus assistant',
             'routine_human_attestation_required': False}
+
+
+def review_pass_checks(task, verified):
+    """Correlate distinct review records with the actual bytes examined and delivered."""
+    errors = set()
+    counts = {'substantive': 0, 'editorial': 0}
+    passes = task.get('review_passes')
+    if not isinstance(passes, list):
+        return {'REVIEW_PASS_HISTORY_MISSING'}, counts
+
+    # A label change cannot turn one finding on the same work into another pass.
+    hashes = {eid: task['evidence'][eid]['sha256'] for eid in verified}
+    receipt_hashes = {hashes[eid] for row in passes if isinstance(row, dict)
+                      and isinstance(row.get('evidence'), list)
+                      for eid in row['evidence'] if isinstance(eid, str) and eid in hashes}
+    seen_receipts = set()
+    seen_work = set()
+    final_reviewed = set()
+    for sequence, row in enumerate(passes, 1):
+        try:
+            kind = row['kind']
+            fields = ('focus', 'finding', 'disposition')
+            if kind not in counts or any(not isinstance(row[k], str) or not row[k].strip() for k in fields):
+                raise ValueError('review type, purpose, finding and disposition required')
+            ids = row['reviewed']
+            if (not isinstance(ids, list) or not ids or
+                    any(not isinstance(i, str) or i not in verified for i in ids) or len(set(ids)) != len(ids)):
+                raise ValueError('reviewed material is absent or duplicated')
+            receipts = row['evidence']
+            if not isinstance(receipts, list) or len(receipts) != 1:
+                raise ValueError('one independent pass record required')
+            raw = verified[receipts[0]]
+            receipt = json.loads(raw)
+            digests = {i: hashes[i] for i in ids}
+            if receipt_hashes.intersection(digests.values()):
+                errors.add('REVIEW_RECEIPT_USED_AS_WORK')
+                raise ValueError('pass receipt cannot stand in for examined material')
+            if (receipt['task_id'] != task['task_id'] or type(receipt['sequence']) is not int or
+                    receipt['sequence'] != sequence or receipt['kind'] != kind or
+                    any(receipt[k] != row[k] for k in fields) or receipt['reviewed_sha256'] != digests):
+                raise ValueError('pass record does not match its task, position, or reviewed material')
+            receipt_hash = hashes[receipts[0]]
+            work = (tuple(sorted(set(digests.values()))),
+                    ' '.join(row['finding'].casefold().split()), ' '.join(row['disposition'].casefold().split()))
+            if receipt_hash in seen_receipts or work in seen_work:
+                raise ValueError('replayed receipt or duplicate work')
+            seen_receipts.add(receipt_hash)
+            seen_work.add(work)
+            counts[kind] += 1
+            if sequence == len(passes) and kind == 'editorial':
+                final_reviewed = set(ids)
+        except (ValueError, KeyError, TypeError, UnicodeError):
+            errors.add('REVIEW_PASS_NOT_VERIFIED:' + str(sequence))
+    if counts['substantive'] < MIN_SUBSTANTIVE_PASSES:
+        errors.add('EIGHT_SUBSTANTIVE_REPASSES_REQUIRED')
+    outputs = task.get('outputs')
+    if (not isinstance(outputs, list) or not outputs or not final_reviewed or
+            any(not isinstance(o, dict) or not isinstance(o.get('evidence'), str) or
+                o['evidence'] not in final_reviewed for o in outputs)):
+        errors.add('FINAL_EDITORIAL_PASS_NOT_VERIFIED')
+    return errors, counts
 
 
 def check(root, catalog, task, evidence_root, now=None):
@@ -164,7 +226,9 @@ def check(root, catalog, task, evidence_root, now=None):
         except (OSError, ValueError, KeyError, TypeError):
             fail('EVIDENCE_INVALID:' + str(eid))
     def proof(ids):
-        return isinstance(ids, list) and bool(ids) and all(i in verified for i in ids)
+        return isinstance(ids, list) and bool(ids) and all(isinstance(i, str) and i in verified for i in ids)
+    review_errors, review_counts = review_pass_checks(task, verified)
+    errors.update(review_errors)
     # A reminder is evidence of a request, never evidence of a model switch.
     def normalize_reminder(value):
         return value.translate(str.maketrans({'\u2011': '-', '\u2013': '-', '\u2014': '-'})).replace('**', '').casefold()
@@ -309,7 +373,14 @@ def check(root, catalog, task, evidence_root, now=None):
                 fail('PROTECTED_HOLD_STATE_DRIFT')
         except (ValueError, KeyError, TypeError):
             fail('HOLD_STATE_INVALID')
-    for item in task.get('outputs', []):
+    outputs = task.get('outputs', [])
+    if not isinstance(outputs, list):
+        fail('OUTPUT_VERIFICATION_MISSING')
+        outputs = []
+    for item in outputs:
+        if not isinstance(item, dict):
+            fail('OUTPUT_VERIFICATION_MISSING')
+            continue
         if not proof([item.get('evidence')]) or not item.get('claim') or not proof(item.get('verification_evidence')):
             fail('OUTPUT_VERIFICATION_MISSING')
         if item.get('format') in {'docx', 'pdf', 'pptx'}:
@@ -337,7 +408,9 @@ def check(root, catalog, task, evidence_root, now=None):
             'task_sha256': fingerprint(task), 'evidence_sha256': fingerprint(evidence),
             'result': 'verified_record' if not errors else 'incomplete',
             'errors': sorted(errors), 'counts': {'requirements': len(expected),
-                                               'verified_evidence': len(verified)},
+                                               'verified_evidence': len(verified),
+                                               'verified_substantive_passes': review_counts['substantive'],
+                                               'verified_editorial_passes': review_counts['editorial']},
             'verified_evidence_ids': sorted(verified), 'correction_annotations': corrections,
             'limits': 'Record/coverage/integrity verification only; no semantic truth, human authenticity, inaccessible corpus or cross-chat enforcement guarantee.'}
 
@@ -366,10 +439,12 @@ def save(path, value, exclusive=False):
 
 def reconcile(task, catalog):
     """Preserve prior applicability/proof; reopen all checks after authority drift."""
-    if task.get('register_sha256') == catalog['register_sha256']:
-        return task
-    updated = new_task(catalog, task['task_id'], task['objective'])
+    # Reconciliation of an older open task starts its new ledger empty.
     result = dict(task)
+    result.setdefault('review_passes', [])
+    if task.get('register_sha256') == catalog['register_sha256']:
+        return result
+    updated = new_task(catalog, task['task_id'], task['objective'])
     result['authority_history'] = list(task.get('authority_history', [])) + [{
         'register_sha256': task['register_sha256'],
         'requirements': task['requirements'], 'references': task['references'],

@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 18 November 2026 — Substantive and editorial reviews for every task
+
+Marc directed at least eight substantive re-passes after initial work and at least one separate editorial pass. SAL-D144 applies to every task. The proposed change updates the Charter, decision and artifact registers, startup and operating instructions, and the offline assurance gate. Review evidence is task-specific and bound to the work examined. Previously issued records retain their original history. The new rule is a candidate until the governed branch contains the approved revision. It grants no release or deployment authority.
+
 ## 17 November 2026 — All-document heading-spacing amendment
 
 Marc explicitly approved merging SALUS-DOC-HEADING-SPACING-001 and applying Heading 1 12 pt before/12 pt after and Heading 2 12 pt before/6 pt after to all Salus documents. This candidate updates the Charter, decision record, design standard, startup, maintained Word generators, shared style helper and exact-file verifier. Exact twelve-topic white paper v1.5 was native-Word rendered to 54 pages; all 96 used headings passed spacing checks. Active or historic cloud templates and issued documents require controlled successors before reuse; no wholesale migration or deployment is claimed. The white paper's complete corpus/source-qualification and full task-assurance evidence remain incomplete. Preserve Compass pause, disabled reader and all Library/recovery holds. No new operations, publication or source processing authorized. Merge status and exact checks must be read back after promotion.
