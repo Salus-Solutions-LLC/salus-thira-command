@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 18 November 2026 — Research before a substantive Protected Member assessment
+
+Marc directed a Charter correction requiring evidence of Member-specific research before analysis at every assessment level. SAL-D145 adds the prospective checkpoint, named-original and four-stream requirements, exact-source evidence and private chronology. The implementation includes offline validation and fictional regression cases. It is a review candidate until promoted at the authorized revision. Existing assessment releases, access controls, protected workflows and reader settings retain their separate authorization. Preserve historical gaps as recorded. Reassess affected conclusions when material new evidence enters scope.
+
+
 ## 18 November 2026 — Substantive and editorial reviews for every task
 
 Marc directed at least eight substantive re-passes after initial work and at least one separate editorial pass. SAL-D144 applies to every task. The proposed change updates the Charter, decision and artifact registers, startup and operating instructions, and the offline assurance gate. Review evidence is task-specific and bound to the work examined. Previously issued records retain their original history. The new rule is a candidate until the governed branch contains the approved revision. It grants no release or deployment authority.

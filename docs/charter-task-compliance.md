@@ -36,6 +36,62 @@ explicit task-specific resolution. A generated index is not evidence of review.
 
 ## Task and evidence fields
 
+### Research entry for an assessment
+
+Classify the assessment with `--task-type assessment` at initialization. Its
+start time belongs to the new task. Preserve any genuine existing start and
+earlier records when resuming. If prior research timing cannot be established,
+record that limitation and open a prospective review of the affected decision.
+Keep all identifying information and execution receipts in authorized private
+storage outside this checkout. The offline example in
+`tools/test_assessment_research_entry.py` uses fictional data only.
+
+First bind the commissioning request, the Member and locality, relevant official
+domains and aliases, related authorities, and required source identities to
+the scope receipt. Then populate the four location inventories and original
+source dispositions. The research receipt maps those locations to the four
+SAL-D075 reporting streams and identifies actual queries and retained evidence.
+For each required original, identify the relevant passage and its decision
+effect. Record search boundaries, contradictory and superseding material,
+and decision-changing gaps. A required source that cannot be inspected keeps
+the affected assessment in candidate status.
+
+When the request uses shorthand, retain the actual phrase in `requested_as`
+and bind its resolution to the canonical original, identifying passage, version
+and source location. If an entity has no identifiable public site, keep its
+identity evidence and the executed name, alias and jurisdiction searches.
+Use `website_gaps` only when their bounds and effect support a non-decisive
+no-find. A missing decision-changing record remains open.
+
+Set the scope and research evidence IDs in `assessment_research`. Before
+the first substantive assessment output run the following command with a fresh
+receipt path. Retain earlier attempts and use the same task journal throughout.
+
+```text
+python tools/charter_task_compliance.py research-entry --root . --register governance/charter_task_requirements_register.json --task PRIVATE/task.json --evidence-root PRIVATE/evidence --receipt PRIVATE/evidence/research-entry-1.json --journal PRIVATE/corrective-actions.json
+```
+
+`candidate_only` and exit status 2 identify open evidence. Continue source
+work and correct or carry the gaps. A successful `entry_verified` receipt
+permits the substantive assessment within its recorded scope. Register the
+exact receipt bytes as private task evidence and set `assessment_entry_receipt`
+to that evidence ID. In `assessment_research.analysis`, reference the subsequent
+first-analysis record and its actual work product. Run the ordinary `verify`
+command against the same journal before any completion claim. The verifier
+checks the entry event, its authority and four review bindings, and that analysis
+follows the entry. If material new evidence changes a decision, preserve the
+earlier edition and create a new prospective review of the affected conclusions
+under the engagement. Incomplete historical work cannot be backdated.
+
+The offline verifier can correlate local evidence, recorded times and journal
+order. Independent source provenance and protected record custody remain
+necessary to substantiate when real work occurred. The verifier cannot discover
+an unrecorded request, alias, publication or partner relationship, detect
+off-record analysis, authenticate an author, or establish that a searched site
+was complete. Compare the scope with the original instructions and newly
+discovered sources before accepting the assessment. This control grants no
+source access and performs no network retrieval or publication.
+
 `scope` records authorization, boundary and limitations. Each requirements row has
 id, state, reason, evidence IDs and checks. States are met, not_applicable,
 superseded, pending or blocked. A met row requires passed checks containing

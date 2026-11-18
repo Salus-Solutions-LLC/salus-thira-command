@@ -9,14 +9,14 @@
     "AGENTS.md"
   ],
   "sources": {
-    "AGENTS.md": "ec0e3b112f2c87642323a40d44cda2709795b90e46de89ad2d5cfb984b5d2348",
-    "APPROVED_ARTIFACTS.md": "c855a70abe2f21994de65e7749a7bd912bafa198ca8ed3c76f30e5c97da97295",
+    "AGENTS.md": "09a278670406c53e46f262c764f233d113099296b90a8e1866374e00e5c99b75",
+    "APPROVED_ARTIFACTS.md": "4e0142411f61abe16115d5b6cbb647e23c90a470f56861961fbdc2f1f7d80d3e",
     "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md": "e10ad8bbf42c6af6d2e701c886a9ba03b8a3c947610d737990b42931a7a4e3c8",
     "SALUS_ASSESSMENT_REPORT_PURPOSE_AND_EDITORIAL_STANDARD.md": "da3798e4e66518e80e99b221601072268299c606cd7cf14cf3c5cecca37950b4",
     "SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md": "e1c08668dfec2b175d6730f105980c07e9e96484223df82d1edad92d9d3af804",
-    "SALUS_CHAT_STARTUP_PROTOCOL.md": "b218f0edd46670c3209e232a9b85aaa1ecfe7cf5ab058cb10e7414971952c918",
+    "SALUS_CHAT_STARTUP_PROTOCOL.md": "5e00026d977f3f1794931f09c042f55a5452ecd6719a73f13c78c6d4dd986477",
     "SALUS_DECISION_RECORD_WORKSHEET.md": "8752a8a1f1dc5a13514d0da8992fb8241bb964e40c98f3a34ff0eca1d4078b85",
-    "SALUS_DECISION_REGISTER.md": "39d06b4f5762dd40a745c87647648a752646c25520d02b7728d8265ba9b4bc58",
+    "SALUS_DECISION_REGISTER.md": "4f087047d2709341b84f9b05914c315f5c536bbf0b30982cc6f4abd31df66ddc",
     "SALUS_DECISION_TO_PROOF_IMPLEMENTATION_CROSSWALK.md": "93c306729dffe3d18d19157be16c8dfb82b4963caa1c84b1012e1da07f04a917",
     "SALUS_DOCUMENT_DESIGN_AND_PRINT_LEGIBILITY_STANDARD.md": "bdeaf8623c5f6f24339d47227dfa431cd7a9f479b427543089408d41c3fb333e",
     "SALUS_ENTERPRISE_DECISION_TO_PROOF_OPERATING_STANDARD.md": "1560e28807b65b78d7998623fa64e088369fd437e0b04212894ccf08d3003aae",
@@ -28,21 +28,21 @@
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
     "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "ba2658b4f7bbaf7ed679b1d52a272048c740349c9946cb6fbf3b86b3ada4983a",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
-    "SALUS_PROGRAM_CHARTER.md": "f247d23df6c2df32c9f4a43bf5c2b532db777560ff69a213a1b1403b5f92167e",
+    "SALUS_PROGRAM_CHARTER.md": "62fa5fad7a7746f1ac54a75e6bfa64ae642068a78901c4b62e5e3b5efd6c1a20",
     "SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md": "e2a6c9f76dd33e291305fec43548ad0021a1cf44d0acaaa87f075bea57eb9409",
     "SALUS_RESEARCH_CAPTURE_AND_KNOWLEDGE_TRANSFER_STANDARD.md": "aa0ae006af695af39c14a5194e3a0568dcc3481eab4ffbf1b2d487c12ef9df19",
-    "SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md": "c33bb8e1d06ffc574e941f14ce3961e83bc7b6291f0579eda1e9155bc35fe1b7",
+    "SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md": "55f0fa5b967a9da5417f5bc750e788de5a5eabc703e43225194986a25041987e",
     "SALUS_SALCAPA_INTEGRATED_REPORT_STANDARD.md": "3aafeb29c8ffc84be05d46d29007dd420e0e0a45dc61a6ae0abed42bc6a10ba5",
     "SALUS_SALINTEL_SALTHIRA_METHOD_STANDARD.md": "67010e0bf0d71952203156fbcaeda7fd9ddfbbfc241228084146bc12a580e3da",
     "SALUS_SALOPS_METHOD_REPORT_STANDARD.md": "e9572afa8f0dea2faeda8f9d00c24430afcec46aa5c0edaaa0f8d1d114554315",
     "SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md": "11b3aac031669018382549983e7aca26f71231dd5e858aeb43490c8410cd7d90",
-    "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md": "45b4615f7bf1f44401b54a0620f9782040cb50b3db0a9b1ccde261e742b34278",
+    "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md": "efac6f2a6add7c4c19b2ad19a534b2323c74cb0fcda94327e2113cc69c58ed53",
     "SALUS_THOUGHT_LEADER_RECONCILIATION_20260928.md": "679104ec368fcac96e81f0fec62b41b372e97ccac71dfd0a803fa523705e79e3",
     "SALUS_THOUGHT_LEADER_RESEARCH_STANDARD.md": "1df625d444ef47560a3c5794b8625f8e6497026c5c4fe2f2db5f6357f3fb415e",
     "SALUS_THREE_LEVEL_SERVICE_FRAMEWORK.md": "ab2290007355f2d3b0dc38e26ab9b60503c49129c94caf316bcfc482a952ccee",
     "Salus_Knowledge_and_Records_Architecture.md": "f8a73392a0183fdb823681b00b37e170b7eae0e9bbe01591d4ecd1c4008133a1",
     "docs/AZURE_DEFENDER_STORAGE_SCANNER.md": "ad38b2ad10f49d5b2d1d51c5dbb5ccfba309bc5b714c80ef83274b5ab1ac8f32",
-    "docs/charter-task-compliance.md": "30efd7974fe80dcba82fa77e6ac878f6b9665c98a0cd4283c5c05a2f8ee6c20d",
+    "docs/charter-task-compliance.md": "1c0c4ca8782b46cf245805c2695739e33fb3a4af697b5a2bd4641d0cb0d0a95b",
     "docs/package_quote_authorization_contract.md": "fc9e9d11e3f07afb2857793608aeceae2e13316db9416c9797b3a48242d24410",
     "docs/persistent-assessment-worker.md": "601dc1a7e598b20b417fcaeeccd88776fee7ccca7b537738cf7ae020eecbe87f",
     "proposals/SALD055_LEVEL_SERVICE_AND_COMMERCIAL_COPY_CANDIDATE_20260928.md": "5f61de51a9338596909c5226938d1de8bd211628c85b930d298c82b4ed84f191",
@@ -170,6 +170,16 @@
       "text_sha256": "a495a7e968bfdb68a2bfe5a2d1c66a516024b08929a22352baabff72ef3b2efe",
       "decision_ids": [
         "SAL-D144"
+      ]
+    },
+    {
+      "id": "REQ-e8b4b94aaa714e2c1076e458",
+      "source": "AGENTS.md",
+      "line": 21,
+      "section": "Salus agent execution requirements",
+      "text_sha256": "69f0f9e28ff1d8581e2072dab7c0f782093630503a7932d1c39a20c28bf69e62",
+      "decision_ids": [
+        "SAL-D145"
       ]
     },
     {
@@ -1021,9 +1031,19 @@
       ]
     },
     {
-      "id": "REQ-179452ab89ee2deb460acfdb",
+      "id": "REQ-6080ed9731c8ce81699287f9",
       "source": "APPROVED_ARTIFACTS.md",
       "line": 114,
+      "section": "Salus Solutions — Approved Artifact Register / Assessment report editorial authority [SAL-D136]",
+      "text_sha256": "b30b11c4718b9234292c5e34eee6111fa85fcdc14dcda12084420dac1f3c6602",
+      "decision_ids": [
+        "SAL-D145"
+      ]
+    },
+    {
+      "id": "REQ-179452ab89ee2deb460acfdb",
+      "source": "APPROVED_ARTIFACTS.md",
+      "line": 115,
       "section": "Salus Solutions — Approved Artifact Register / Assessment report editorial authority [SAL-D136]",
       "text_sha256": "1fd4824773f495b547bf9abf742fea392a6217840f21a89a970d3f8d4126f991",
       "decision_ids": []
@@ -1031,7 +1051,7 @@
     {
       "id": "REQ-2d50494ba41f1d6e7046d631",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 117,
+      "line": 118,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "0c17e1658aca25a07818ab6cd809d28d4bdc3fd864eaa47d4f7dfb310e602fc3",
       "decision_ids": [
@@ -1041,7 +1061,7 @@
     {
       "id": "REQ-007acd52883a8dcfc7848840",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 119,
+      "line": 120,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "79b216264f9b7f52b7094b3bba994ba9010d6fd5c59a6621430b22a0e614853f",
       "decision_ids": []
@@ -1049,7 +1069,7 @@
     {
       "id": "REQ-5538b9fc4e432ca983e451d2",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 120,
+      "line": 121,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "23cca02b74f386463efa24796c7a9011b0d2c93f0c38b4d15d5d276205b59b43",
       "decision_ids": []
@@ -1057,7 +1077,7 @@
     {
       "id": "REQ-de6055fe595dce96accf4c9c",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 121,
+      "line": 122,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "bf7b7348e59e2b9cd0edb5976fed5590f425923523b6bae83542da41f6fc0f14",
       "decision_ids": [
@@ -1067,7 +1087,7 @@
     {
       "id": "REQ-476c46b8c6509959020420b2",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 122,
+      "line": 123,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "e355c5e5bd4ebed4810bf717023890580f480df38dc2b97c6922bc0ffa396689",
       "decision_ids": [
@@ -1077,7 +1097,7 @@
     {
       "id": "REQ-ca2c798bbfe155641195c84e",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 123,
+      "line": 124,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "54e0bcb2af569eb0cb6486ff640e6790f23b59551e3196f44cfe5d40ec884058",
       "decision_ids": []
@@ -1085,7 +1105,7 @@
     {
       "id": "REQ-ba6a849afec8944477cfdcd9",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 124,
+      "line": 125,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "b92faf8563462a330224325732de8af8a11efb4acedb63650128676c8e3d378b",
       "decision_ids": []
@@ -3325,6 +3345,24 @@
       "decision_ids": []
     },
     {
+      "id": "REQ-3c99fea2f2acaf66e5121eab",
+      "source": "SALUS_CHAT_STARTUP_PROTOCOL.md",
+      "line": 238,
+      "section": "SAL-D056 spatial-source startup check / Start a Protected Member assessment [SAL-D145]",
+      "text_sha256": "93669b855f968ef2c1f70e61710f08110391bdc586daa7c37648e7d8f195e9d2",
+      "decision_ids": [
+        "SAL-D145"
+      ]
+    },
+    {
+      "id": "REQ-6ef4921195fd05ebaa722e4e",
+      "source": "SALUS_CHAT_STARTUP_PROTOCOL.md",
+      "line": 240,
+      "section": "SAL-D056 spatial-source startup check / Start a Protected Member assessment [SAL-D145]",
+      "text_sha256": "665048429cbc927d25f23cfc9a73575a75a442a07056d0d5736a32cbedeee11e",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-34fd3a42d5244bb30dc810ff",
       "source": "SALUS_DECISION_RECORD_WORKSHEET.md",
       "line": 1,
@@ -5468,6 +5506,24 @@
       "line": 274,
       "section": "Salus Solutions — Decision Register / SAL-D144 — Eight substantive re-passes and a separate editorial pass for every task",
       "text_sha256": "e81ef64ac1961d84d064570389d27fce180b6fdd24dc2f37800edef6c9ea2e09",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-10d00ca7307531c76674d892",
+      "source": "SALUS_DECISION_REGISTER.md",
+      "line": 276,
+      "section": "Salus Solutions — Decision Register / SAL-D145 — Establish research before substantive Protected Member assessment",
+      "text_sha256": "9092d9f38c3f010f9e86eedac09455cffd675e2ec264c59615312912582befda",
+      "decision_ids": [
+        "SAL-D145"
+      ]
+    },
+    {
+      "id": "REQ-c8c465d54ce8fd17431bb001",
+      "source": "SALUS_DECISION_REGISTER.md",
+      "line": 278,
+      "section": "Salus Solutions — Decision Register / SAL-D145 — Establish research before substantive Protected Member assessment",
+      "text_sha256": "ed775aa49e5abb49be3a31c88a6d534cb0155060e997bc7c2d334c1d3443ceec",
       "decision_ids": []
     },
     {
@@ -17826,6 +17882,42 @@
       "decision_ids": []
     },
     {
+      "id": "REQ-a0787f074cb31bc0c30db169",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1104,
+      "section": "Salus Solutions — Master Program Charter / Research before a Protected Member assessment [SAL-D145]",
+      "text_sha256": "99676aa93c14e303de185583d990eebadd1cc2f8c2fcd50a34a535490abbbf8b",
+      "decision_ids": [
+        "SAL-D145"
+      ]
+    },
+    {
+      "id": "REQ-b984608e33d80a01695e5a2c",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1106,
+      "section": "Salus Solutions — Master Program Charter / Research before a Protected Member assessment [SAL-D145]",
+      "text_sha256": "d42190793fb61741c47822ce877e3a8ccd31be404b95aee6087aa9b973448493",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ee4822796e34cfa84b02fce9",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1108,
+      "section": "Salus Solutions — Master Program Charter / Research before a Protected Member assessment [SAL-D145]",
+      "text_sha256": "383cf60d257d4ac402f16fb6325376e1db211b1841ae1950ada7d85633a9b928",
+      "decision_ids": [
+        "SAL-D075"
+      ]
+    },
+    {
+      "id": "REQ-bb3d5a2185fc297017134bad",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1110,
+      "section": "Salus Solutions — Master Program Charter / Research before a Protected Member assessment [SAL-D145]",
+      "text_sha256": "3e178a896a8a7ab154677f11edc8be2bb56efebf0366d0bc8124a6ca8149ae50",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-8655f4a5701c979f777465b6",
       "source": "SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md",
       "line": 1,
@@ -19325,6 +19417,50 @@
       "line": 110,
       "section": "Salus research coverage and gap-closure standard / Every-task source search and coverage [SAL-D133]",
       "text_sha256": "da1cd8bf1bb601f5f17f250eef4476e02b64dd6a62e468d0333f369351eea7dd",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-3f90fb10ae3d8deb8d74ffa1",
+      "source": "SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md",
+      "line": 112,
+      "section": "Salus research coverage and gap-closure standard / Assessment research entry [SAL-D145]",
+      "text_sha256": "e7d98327d758e13150b0ff9ca037a354c73cad65ea01715c9b41e98f9f9f5f49",
+      "decision_ids": [
+        "SAL-D145"
+      ]
+    },
+    {
+      "id": "REQ-b3df636731067171f2094d0a",
+      "source": "SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md",
+      "line": 114,
+      "section": "Salus research coverage and gap-closure standard / Assessment research entry [SAL-D145]",
+      "text_sha256": "54b2664508a1b79160733acb4a5f55506cab7ed02ae8f6a290929d958ac8b1df",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a30d554030165459abd24caf",
+      "source": "SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md",
+      "line": 116,
+      "section": "Salus research coverage and gap-closure standard / Assessment research entry [SAL-D145]",
+      "text_sha256": "9d0cf369d8b78d2b21a6ec4a0c41ab9892ed149db4c36626e9e045be1c6fe957",
+      "decision_ids": [
+        "SAL-D075"
+      ]
+    },
+    {
+      "id": "REQ-a123dce47183ad59de5ab58c",
+      "source": "SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md",
+      "line": 118,
+      "section": "Salus research coverage and gap-closure standard / Assessment research entry [SAL-D145]",
+      "text_sha256": "f5092d1d69e5022023f278d6026ec0afbc29c46fb3bbccc7bdd31020b8ed3a0d",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c009fba348ee5f0a86cd99c2",
+      "source": "SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md",
+      "line": 120,
+      "section": "Salus research coverage and gap-closure standard / Assessment research entry [SAL-D145]",
+      "text_sha256": "621a141a7ea808748215b2b694a22ada962a7c0bbecd7066f7a164dc66281f88",
       "decision_ids": []
     },
     {
@@ -22002,6 +22138,24 @@
       "line": 89,
       "section": "Salus Task Compliance and Assurance Standard / Evidence for eight substantive re-passes and a separate editorial pass [SAL-D144]",
       "text_sha256": "b3101c7845b7d23504c92d96def6e8c25323134a28d81f48e4b757a8deb74ba6",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-bd857cef031a12403919acba",
+      "source": "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md",
+      "line": 91,
+      "section": "Salus Task Compliance and Assurance Standard / Assessment entry and reassessment [SAL-D145]",
+      "text_sha256": "66bc8dca0217f0d5c5e323d9430d316d2db96804c200e9db0049d6d853882123",
+      "decision_ids": [
+        "SAL-D145"
+      ]
+    },
+    {
+      "id": "REQ-52cfcdbfcc947be8fad3877c",
+      "source": "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md",
+      "line": 93,
+      "section": "Salus Task Compliance and Assurance Standard / Assessment entry and reassessment [SAL-D145]",
+      "text_sha256": "13e969bb610799836320f62dc03b0397558a0f1ce756eca96278a6bd981e2a38",
       "decision_ids": []
     },
     {
@@ -24981,329 +25135,715 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-46e660749a26686615ecf974",
+      "id": "REQ-83d231ee0613a25ce54ae299",
       "source": "docs/charter-task-compliance.md",
       "line": 39,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "df4d50e41dd0865ed09d88d893b4bc4b0decdd094d43f392379c65b5babd15dc",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7ea906dfe52e8e1e72935577",
+      "source": "docs/charter-task-compliance.md",
+      "line": 41,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "42d919a9a2cd22ed760bcc00c6719396c2767455094d1e3aac29a523de1e3546",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-f60b4cbe98c7863ac42dc2dc",
+      "source": "docs/charter-task-compliance.md",
+      "line": 42,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "0b329019da4bd2a247bf551843f737b0f921082492708e823ab6db3cf06d0860",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c5a5a5cc9c9594294cd61b01",
+      "source": "docs/charter-task-compliance.md",
+      "line": 43,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "490747d94b108fac1b39123d4373cd07c4b4b0d10ad4e273c84ee06fc6e8666e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9847777c02b6a91c3b04bd30",
+      "source": "docs/charter-task-compliance.md",
+      "line": 44,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "ea01fdb4015e5d0616aafb11b953ac7532bb1cecf528f5429cc2be76cf3d760e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ff13c5f85901f2b8202ada39",
+      "source": "docs/charter-task-compliance.md",
+      "line": 45,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "7f47ba67be25056ce88e1b7b470a9e4f550f08d48f5dfc84f71bd0d8f77d08eb",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-b908804b625ab607e97d27af",
+      "source": "docs/charter-task-compliance.md",
+      "line": 46,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "442fa7691eb8903db9d3e30ada6aeb27102e2b79421b6f0cf7603b284d37e087",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ff81c838622244eb2e1215e5",
+      "source": "docs/charter-task-compliance.md",
+      "line": 47,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "43cf0a8768c3230b4a800c9c6fa1619a27b585f221d733e06847d92687030b04",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-bf097893533cf8897e80a1cc",
+      "source": "docs/charter-task-compliance.md",
+      "line": 49,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "348dd88a9249e1894a4d04ce2ea11fb888a68cde1ce8e6fe4438a360700d19a5",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-85ca2e6ab1a791cb688e6cc9",
+      "source": "docs/charter-task-compliance.md",
+      "line": 50,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "e2dff5996db91afd1a151562400dd85e2b8e0e0e11d2157e1666cd99b3cf1a9e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-27ba6f3501d3ace4cde2acc5",
+      "source": "docs/charter-task-compliance.md",
+      "line": 51,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "f78e9f7fdb71728f09c84189e8647a1441d717d8764873b470756304b931e668",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-43d5f514ee60ce84dd49f535",
+      "source": "docs/charter-task-compliance.md",
+      "line": 52,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "61dc1de26891b75affe747e21ddf277aa69b97ca8a55c8364362677f4d6b3bb6",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-11af2154f42e5d3d1dc6104d",
+      "source": "docs/charter-task-compliance.md",
+      "line": 53,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "03ff00c741cd104535b7a3476c5f24d3c55a19d8b18c8422d9dda1bef856674d",
+      "decision_ids": [
+        "SAL-D075"
+      ]
+    },
+    {
+      "id": "REQ-b1f383ab8058148755580a8e",
+      "source": "docs/charter-task-compliance.md",
+      "line": 54,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "7d3c285e7c00d50e3f0a126c1aee697a71c544e1b6c947b4b717725e21be6e50",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-8c11f8ee515c4ed20acc438c",
+      "source": "docs/charter-task-compliance.md",
+      "line": 55,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "e5f268be4f9567b89f8e525c017ed9eda98e3340716e57667e3e74df925e657e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-81e863ba85b2a1eaee3e2831",
+      "source": "docs/charter-task-compliance.md",
+      "line": 56,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "4208657fc842f4f3f7166ed8821e2557e07d557ff819ddf6260a613b681fa632",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-dc2daf81c4538c22312d1cd8",
+      "source": "docs/charter-task-compliance.md",
+      "line": 57,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "3ccb042a678bbf82b2efe2616d1ee3bf181cf15f1a5cac575bcd133eb455617b",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-90b9e803b05b37a45706c1a8",
+      "source": "docs/charter-task-compliance.md",
+      "line": 59,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "7e5e52be85cd56eb14248312c37077eea50621ad7d61286e3a62ad91f00fe42f",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-3f207e88ca8c8c074bb8d846",
+      "source": "docs/charter-task-compliance.md",
+      "line": 60,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "abd821afd8e4195b322ee828f5b79f322824ff366362993b8bd250141d01376e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9dabede85200f4b61ddfbbf2",
+      "source": "docs/charter-task-compliance.md",
+      "line": 61,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "d53996fdc9cb04c1e275d708ea93555da2d73a885b19d0e72be4e9e06bf5ea2e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-df60123272993a92ad5bd9b0",
+      "source": "docs/charter-task-compliance.md",
+      "line": 62,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "dc8c16ad2304b9e6cf4f2ac6304d79b5394e418e60f0fd9aa5dbac7f310c4648",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-b2fef7cade9b92a5f7dc528e",
+      "source": "docs/charter-task-compliance.md",
+      "line": 63,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "d9b422f9a400aaca562149d5d634acd000e38ef7454d5d275710cd0e1a13be45",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9f108910d3d13cdc32bd26ba",
+      "source": "docs/charter-task-compliance.md",
+      "line": 64,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "878cf4b74c8af5cafa70c96b7273d6869cb1758d2f1e378ee2e81e0a8de42670",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-8b717447e77b965aa65f5525",
+      "source": "docs/charter-task-compliance.md",
+      "line": 66,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "78f7c086367f274808c4bd3fcbdc3834f12f956c02fecec192ddba68addc71dd",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9b9df0deb18bc7c308e852a9",
+      "source": "docs/charter-task-compliance.md",
+      "line": 67,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "e60d4a4504fa0598465f47b79500fec028e26a3f677610f8e585a1ab6cbe45a7",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-8e01a6cf089346e385cb9f60",
+      "source": "docs/charter-task-compliance.md",
+      "line": 68,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "45f675dab2ec0bc6117db496ce7a3e021bdfc122e25bdd21e8e287fcd0132f1e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ea87c444f4ba26702c704863",
+      "source": "docs/charter-task-compliance.md",
+      "line": 70,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "b4a313791c1fbca2c1410d1d5b1190af4087723ec1b6c1c4ba776298d6dd6228",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-2bd38f829aedc0f966a04951",
+      "source": "docs/charter-task-compliance.md",
+      "line": 71,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "1031173b2925a4d732449bbe8bb76de78b1fb20f2b3a39daf3cba1908ee6426b",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9b867e08456eb15723a996b8",
+      "source": "docs/charter-task-compliance.md",
+      "line": 72,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "f1b901847390b0ed7e374e7c1e464ec17b46a427c487a5ad6cbd2906405083d5",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-30a5bf8e6bec2c77499554f0",
+      "source": "docs/charter-task-compliance.md",
+      "line": 74,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "4f7cdc856c5c9a8f84e18e9c9a6887c705c765113c7c988b9a62a667c91e3be9",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-f91127ab9ef66fb8c96e2434",
+      "source": "docs/charter-task-compliance.md",
+      "line": 75,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "0243d3cc0d96f62f90538d6443323d02878f84c3a5ea4792843c9918c82a20c4",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7efd7beb55554d8057a35c8c",
+      "source": "docs/charter-task-compliance.md",
+      "line": 76,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "b0b024b0147d9ec9e3ace4de244d3bc1fdb5f0b1cc83555e18faae542b6d0550",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-2fa63b0dd66c6013c23376be",
+      "source": "docs/charter-task-compliance.md",
+      "line": 77,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "f1cbb299c4a65bb0c9d3cc750ec12508f6f8e50c850710107c1b90c46240b9ab",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d65425bb9920aca7c987e235",
+      "source": "docs/charter-task-compliance.md",
+      "line": 78,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "ff988ca847a7a633ada392a55b9ce2ab18c43840ab198b5a7e290f1a9951f80c",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-e1dded3a143008259d385662",
+      "source": "docs/charter-task-compliance.md",
+      "line": 79,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "7b9652a0257dfc97ee9eb77078faa7d6d5ae1c3cf22758cd904e012599207ef5",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-1f981627926decd4f7ce2fc2",
+      "source": "docs/charter-task-compliance.md",
+      "line": 80,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "38b7bab0728a601e2efdc3d71ba79f7787ae223eadc905d9ef21254a9327ebe3",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-8e0a5fdccc3b4ba1c8b99770",
+      "source": "docs/charter-task-compliance.md",
+      "line": 81,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "ae97554bd70396b624dec6be623852538a0e73038e8c3d3100e1651412289019",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-aa5d882bd03f21fb0e6ab839",
+      "source": "docs/charter-task-compliance.md",
+      "line": 82,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "c47c58c28747c20167168e74ae90f2b888ccfc9a61b5bd63e06dc067b85abd9a",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-8a8b4320de706359b623aab8",
+      "source": "docs/charter-task-compliance.md",
+      "line": 83,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "c2e897d1ba990db5efd991690e562d4b6909f89a87f3a818ec69a1f270a5c471",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d1931839b0b840565e2b0be8",
+      "source": "docs/charter-task-compliance.md",
+      "line": 84,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "ce0a667655bef39ca1dec994ad51a9b2bc799216cf8ce5953abdf00a7a725439",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7aa2deb7899882b1cf70450a",
+      "source": "docs/charter-task-compliance.md",
+      "line": 86,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "44551f640c04226a654f0a07a92841206fdb38567b0054bc1c106aac25681447",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-1f56d28d11fac2affd7253c6",
+      "source": "docs/charter-task-compliance.md",
+      "line": 87,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "75a446a3c041e03aa25871af168a5984c0abd1fd60cee72b1fb1941b9f7a53f8",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9b74d4d00322b53bd77fcbfd",
+      "source": "docs/charter-task-compliance.md",
+      "line": 88,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "e9bf7ff600d92c53b45b4b188cf11d01472e49ad08e52856be0de59939b8bebc",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6ed785b172f03884fab150b3",
+      "source": "docs/charter-task-compliance.md",
+      "line": 89,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "ae0969c9cc92d67e309f53e7258d91c79571fcd8e3b1278b9bb2ee393f011da6",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-2bde7ca52290072a9c2d4ded",
+      "source": "docs/charter-task-compliance.md",
+      "line": 90,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "942f4f39d992190399dbcbc83497fa1404f599054165b031aa5859f3162a2393",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c04d5d2a92e749d91a847dd2",
+      "source": "docs/charter-task-compliance.md",
+      "line": 91,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "3187b252b9136ab5eb920000e0089d4c02487d5841396ce68521b11a3d670437",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-14ade1a860ac83cee05af16d",
+      "source": "docs/charter-task-compliance.md",
+      "line": 92,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "61afde51a04e283b915232e8b6f99156d4195eb303db4c677de740358c2e517a",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-fbc54d65ecfc1468c0b76dac",
+      "source": "docs/charter-task-compliance.md",
+      "line": 93,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
+      "text_sha256": "3e9a3bad470c6cccffe04d3c1a9573115a4b42e9e5a59cffa91259821578d949",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-46e660749a26686615ecf974",
+      "source": "docs/charter-task-compliance.md",
+      "line": 95,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "793af6eeedaca79961e1f3a2a96358af954969c43ecee83ad75f08ae2aa38157",
       "decision_ids": []
     },
     {
       "id": "REQ-767f6a772f2b881a5e1a0718",
       "source": "docs/charter-task-compliance.md",
-      "line": 40,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 96,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "474a371649055a9306c5ba09bc88181518929328da25e5205684c252088d575d",
       "decision_ids": []
     },
     {
       "id": "REQ-75cd9f94dbc667578258b8de",
       "source": "docs/charter-task-compliance.md",
-      "line": 41,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 97,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "ba31456be312ebc3f1db2a39103303235ff51afc9fc8777deeada2a32ab60053",
       "decision_ids": []
     },
     {
       "id": "REQ-a3db17e5b507f050bdd681d1",
       "source": "docs/charter-task-compliance.md",
-      "line": 42,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 98,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "ee2117fe87efb10a10f475044694e4ba3e5b5272096e813437c9874b20d34f59",
       "decision_ids": []
     },
     {
       "id": "REQ-f1eeaee06e767f83dc5552f7",
       "source": "docs/charter-task-compliance.md",
-      "line": 43,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 99,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "93e0ca24fa84bf4f912822a7583e7cfd173c1cfc25bbe2f27370016a771978b4",
       "decision_ids": []
     },
     {
       "id": "REQ-137ced595f2a72efb032991d",
       "source": "docs/charter-task-compliance.md",
-      "line": 45,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 101,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "49e5555f7b401dadb771faf1b1ffefe9f9d92482c607a42bdd2375c25c0afeea",
       "decision_ids": []
     },
     {
       "id": "REQ-20ad36c24349d1bb2aa56a31",
       "source": "docs/charter-task-compliance.md",
-      "line": 46,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 102,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "27d625c56c981dbe04c379dc3290df74fcbdd9d784322d61e9d697c6067c450e",
       "decision_ids": []
     },
     {
       "id": "REQ-137108390b4342a6eabd85ec",
       "source": "docs/charter-task-compliance.md",
-      "line": 47,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 103,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "10de9f1070001eaf1177b6590d41f4af0f779ec8856867f7b6e737dd1477a30a",
       "decision_ids": []
     },
     {
       "id": "REQ-2cae532266b5e848f6b09f2e",
       "source": "docs/charter-task-compliance.md",
-      "line": 48,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 104,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "160400163a754b67d83d7816f6dda60a154f9313a27b09f7ab2476fab2965c81",
       "decision_ids": []
     },
     {
       "id": "REQ-05b09d948e57609ad1e2aed5",
       "source": "docs/charter-task-compliance.md",
-      "line": 49,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 105,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "dc477919253c8ed1c0c75b279702c1d739676eefd13738b3b568346e078c3251",
       "decision_ids": []
     },
     {
       "id": "REQ-048f45027343c3ba7c4b70ee",
       "source": "docs/charter-task-compliance.md",
-      "line": 51,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 107,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "680b74b384fb26283b12085a08b7daeae79983f0bd9118f8f9ca6617924f62b1",
       "decision_ids": []
     },
     {
       "id": "REQ-5af2281b720877cb23f2d08c",
       "source": "docs/charter-task-compliance.md",
-      "line": 52,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 108,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "9879f42504f8314d5f892606b86d64c41ff2122aaebdf0771199ec2ec067b79b",
       "decision_ids": []
     },
     {
       "id": "REQ-aa4baa550979d6a5e41c98d2",
       "source": "docs/charter-task-compliance.md",
-      "line": 53,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 109,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "034321649176bd0f3c043dfa75e421b409c7c475d2f838defd66dc5e89f388c7",
       "decision_ids": []
     },
     {
       "id": "REQ-15728ec5f81e01bc1da70186",
       "source": "docs/charter-task-compliance.md",
-      "line": 54,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 110,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "3c87e50b64ab59e8be9dc680058054fb4ce467716ceb9f2932d417695089af76",
       "decision_ids": []
     },
     {
       "id": "REQ-459664753b2e3282c29e8d5a",
       "source": "docs/charter-task-compliance.md",
-      "line": 55,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 111,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "ea242ebb6ff16cf112237da647daba78c21a9c8908a288a332241c5f9afe63b1",
       "decision_ids": []
     },
     {
       "id": "REQ-d712982cf8c160352229bbab",
       "source": "docs/charter-task-compliance.md",
-      "line": 56,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 112,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "b464eed3ad029b9287865931bf161b6f5fefcefe9a681098103694c1df22bd38",
       "decision_ids": []
     },
     {
       "id": "REQ-1a61ecda2d5a254a25ee3d5c",
       "source": "docs/charter-task-compliance.md",
-      "line": 57,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 113,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "e363b77ac57eab9333f0f63f022092c1829ab0230604de2e93e1cb12c4087df4",
       "decision_ids": []
     },
     {
       "id": "REQ-6264be02bcdb0c5392d7c682",
       "source": "docs/charter-task-compliance.md",
-      "line": 58,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 114,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "f57f6cff722ff7551b4673a2e25be79c83fdd2f32ec9d21c0b7d14e1a2ebd691",
       "decision_ids": []
     },
     {
       "id": "REQ-279a12b740d8fcacad69598c",
       "source": "docs/charter-task-compliance.md",
-      "line": 59,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 115,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "079c9205f457c21f1e9a76ae8d7763c89ceefa8a31a10bc5b34b29f266cf6e64",
       "decision_ids": []
     },
     {
       "id": "REQ-cf91aff57eacdb95962b593c",
       "source": "docs/charter-task-compliance.md",
-      "line": 60,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 116,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "ee98439d9511c983d6d4e2d2fce038e39b9eb9c2b2538a7953fba19ca5abfb9e",
       "decision_ids": []
     },
     {
       "id": "REQ-7f9f9e3c3fc827cb6737c33f",
       "source": "docs/charter-task-compliance.md",
-      "line": 61,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 117,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "48766acce222ae648609897c3fdfa05f6546cfae80e49a5b6fb2086d5d1834ee",
       "decision_ids": []
     },
     {
       "id": "REQ-a482f090a4e8224461b2dcf5",
       "source": "docs/charter-task-compliance.md",
-      "line": 62,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 118,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "9c67bab60c543b84a482f8161c411dffbc7b5d942a74a5721bdfa067837d9d62",
       "decision_ids": []
     },
     {
       "id": "REQ-7111f9aa54155f41f1a0bc57",
       "source": "docs/charter-task-compliance.md",
-      "line": 63,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 119,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "5e3266031077b4683374c45361f26ece2ceb0bdc30efe76e6257137da09596ab",
       "decision_ids": []
     },
     {
       "id": "REQ-fc1c5508a4ce03b09fac5630",
       "source": "docs/charter-task-compliance.md",
-      "line": 65,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 121,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "5121971175e09ada53cee379cb6cb472c75d753ab8f54e316c58362c4a7e7c3b",
       "decision_ids": []
     },
     {
       "id": "REQ-e9395e6f8814c6b30dcf3c96",
       "source": "docs/charter-task-compliance.md",
-      "line": 66,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 122,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "d0c414b162fe99ac4aa4103bbe2bb098a50cbe56da40bc469d7eb94b93e53496",
       "decision_ids": []
     },
     {
       "id": "REQ-f551a82680db8f5d288dae49",
       "source": "docs/charter-task-compliance.md",
-      "line": 67,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 123,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "cc2834bcb63f9ee794f8b0c499b6ec69bd4b32b7da7c18496aa458dd5996464c",
       "decision_ids": []
     },
     {
       "id": "REQ-a8fd8937b0f957ac7629971c",
       "source": "docs/charter-task-compliance.md",
-      "line": 69,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 125,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "64a3f2b9db150913f9cf8b23b31e643388bf1564670cf90915b2bedea99ebe23",
       "decision_ids": []
     },
     {
       "id": "REQ-405ea6fae29d141c61218604",
       "source": "docs/charter-task-compliance.md",
-      "line": 70,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 126,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "fbe6d6bd8f9d35829d1b5090d977ec5fb29fa2d7babb271d7a4f58ca6489243c",
       "decision_ids": []
     },
     {
       "id": "REQ-0b426676632dd190a06be418",
       "source": "docs/charter-task-compliance.md",
-      "line": 71,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 127,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "44cfd508f3020bf85d8773a4e29b38df471e1301412977eded5bea995d61eb46",
       "decision_ids": []
     },
     {
       "id": "REQ-d70b54c4542972bacc954281",
       "source": "docs/charter-task-compliance.md",
-      "line": 72,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 128,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "a0570e136aab31eb2198494aa019680434b8ec7470e53e9661101eacbb2ca80f",
       "decision_ids": []
     },
     {
       "id": "REQ-ae351314ff102a0ec2faa55e",
       "source": "docs/charter-task-compliance.md",
-      "line": 74,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 130,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "af05f14b86908788d26407a5095348d4ee7d64bb0b5cb32b4596874e38768de5",
       "decision_ids": []
     },
     {
       "id": "REQ-24c3c0a9f50c6f81f50ccf4a",
       "source": "docs/charter-task-compliance.md",
-      "line": 75,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 131,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "99639866011233ee3e3202695188b87158857ee991fa51e66988d86b8c0f195f",
       "decision_ids": []
     },
     {
       "id": "REQ-11ce85598edafd2fd13e8733",
       "source": "docs/charter-task-compliance.md",
-      "line": 76,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 132,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "af3bcde0a5184b94357a57ef91a659a079db65422c055cf4734ee22fa67a0d09",
       "decision_ids": []
     },
     {
       "id": "REQ-462227460b53bfd2cdb9f369",
       "source": "docs/charter-task-compliance.md",
-      "line": 77,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 133,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "91f5bbc5e41313bf1f1bf311234f6f77b4eccffcf32e445a7e403266c4b7896c",
       "decision_ids": []
     },
     {
       "id": "REQ-aafc7972cc7b535a4438c88e",
       "source": "docs/charter-task-compliance.md",
-      "line": 78,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 134,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "17eecada9a0666e16626cda639ec098b6ca26745f9bb043c7148d3a0fdc02044",
       "decision_ids": []
     },
     {
       "id": "REQ-2390634965ba0ea8b4fa8702",
       "source": "docs/charter-task-compliance.md",
-      "line": 80,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 136,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "8cc4abad803d6003024c6f9fd9978bc1cc8721a96a74c37d17948bc99d4528ba",
       "decision_ids": []
     },
     {
       "id": "REQ-699c0bd1533388ebc913a347",
       "source": "docs/charter-task-compliance.md",
-      "line": 81,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 137,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "c32a91402551e9ad4e1ea2e0ec2deabe3ec838e29dbdc82d3609ca988b4b46b0",
       "decision_ids": []
     },
     {
       "id": "REQ-41bcb48faf165840b04cda9b",
       "source": "docs/charter-task-compliance.md",
-      "line": 82,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 138,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "3e2690ec7f4f3d54a1c2b0bc4009d675cdac7019bd6d61e5f7535cadc7255fe2",
       "decision_ids": []
     },
     {
       "id": "REQ-8bef6108d40a2e281d164047",
       "source": "docs/charter-task-compliance.md",
-      "line": 83,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 139,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "78c76ab10f6bc2103b04fdab84066f6572e5e6c37521c9a604b109ebf7393186",
       "decision_ids": []
     },
     {
       "id": "REQ-c441220434d197a78db2de24",
       "source": "docs/charter-task-compliance.md",
-      "line": 84,
-      "section": "Every-task compliance assurance runbook / Task and evidence fields",
+      "line": 140,
+      "section": "Every-task compliance assurance runbook / Task and evidence fields / Research entry for an assessment",
       "text_sha256": "3309bc462db1909d5ae78ed838cade8fbdf68ae27698a3906bb37ac8205b3a42",
       "decision_ids": []
     },
     {
       "id": "REQ-fb609283bcfa1e80231f3256",
       "source": "docs/charter-task-compliance.md",
-      "line": 86,
+      "line": 142,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "eafc5eade1892cdf07af7622f5b837463570db2aac76332927d756d73e2b2a0d",
       "decision_ids": []
@@ -25311,7 +25851,7 @@
     {
       "id": "REQ-1b23066b4da218615af86970",
       "source": "docs/charter-task-compliance.md",
-      "line": 88,
+      "line": 144,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "8c1786432fc18cc1631e46cb07398827a9a927adf3e0105c93ba530abcd67de3",
       "decision_ids": []
@@ -25319,7 +25859,7 @@
     {
       "id": "REQ-aa589e44d614d7f3520937a9",
       "source": "docs/charter-task-compliance.md",
-      "line": 89,
+      "line": 145,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "ff7ad4c3a8d9a3042a7ab0a85dd6ce232da01c4a22b8f0e3715560dc8c9963ac",
       "decision_ids": []
@@ -25327,7 +25867,7 @@
     {
       "id": "REQ-e303f3103a8808fe15bf3b4a",
       "source": "docs/charter-task-compliance.md",
-      "line": 90,
+      "line": 146,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "1771850d656763ca7f3274283c06865f6f243820864699803bd2beefda3cfe61",
       "decision_ids": []
@@ -25335,7 +25875,7 @@
     {
       "id": "REQ-1d6a37529738cc1770b477ef",
       "source": "docs/charter-task-compliance.md",
-      "line": 91,
+      "line": 147,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "4521f51cf62da394fcbb2c119b37b2e6ef3b3b312c7d4635b092a235f8d9f583",
       "decision_ids": []
@@ -25343,7 +25883,7 @@
     {
       "id": "REQ-505d68b52474bc54ba87ac46",
       "source": "docs/charter-task-compliance.md",
-      "line": 93,
+      "line": 149,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "a7ff7ec2f4a633d7bbbc7d7e57c3289dc38cbe229731d973e5ca0665008676eb",
       "decision_ids": []
@@ -25351,7 +25891,7 @@
     {
       "id": "REQ-e7c4a2e0d1370f45fe11e34d",
       "source": "docs/charter-task-compliance.md",
-      "line": 94,
+      "line": 150,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "0f8a89b79a912689fc91d1c28814dc70854d23d14ab07f2465b3ab79e98deae8",
       "decision_ids": []
@@ -25359,7 +25899,7 @@
     {
       "id": "REQ-aa12a435bed07d269c369275",
       "source": "docs/charter-task-compliance.md",
-      "line": 95,
+      "line": 151,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "b7c03bc7e76eae38a10b27ebaa5c3256320aec4e0502cf90f13b7791b9e172da",
       "decision_ids": []
@@ -25367,7 +25907,7 @@
     {
       "id": "REQ-d1ea8bd0d47cfbe12a6184aa",
       "source": "docs/charter-task-compliance.md",
-      "line": 96,
+      "line": 152,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "d88e50054abbf7155e105f30d96909533bc77446bea58054a972c911c2d8107d",
       "decision_ids": []
@@ -25375,7 +25915,7 @@
     {
       "id": "REQ-6c41d71eefa603724045972c",
       "source": "docs/charter-task-compliance.md",
-      "line": 97,
+      "line": 153,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "687d3f226d27340160389f80b04d673b62d2ee5b7d8381c9a7f6c24d58a5451c",
       "decision_ids": []
@@ -25383,7 +25923,7 @@
     {
       "id": "REQ-2e8909edfe0e682f1465fa0a",
       "source": "docs/charter-task-compliance.md",
-      "line": 98,
+      "line": 154,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "eafadc9908bddc5522403a1830a08ff8821bcf2d2f9bfaeef4f0893ce95e12b4",
       "decision_ids": []
@@ -25391,7 +25931,7 @@
     {
       "id": "REQ-5897ce37e37a97f29655c189",
       "source": "docs/charter-task-compliance.md",
-      "line": 99,
+      "line": 155,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "2168b5d649d3cced3ae6749c1d5863a537a8e2104f8b91d457d1d3072a9434fe",
       "decision_ids": []
@@ -25399,7 +25939,7 @@
     {
       "id": "REQ-881f55b27baa9b70b24d25e0",
       "source": "docs/charter-task-compliance.md",
-      "line": 100,
+      "line": 156,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "78d74e4e8c60bdf975c792388c57021c914ea63e51a4d894794c9d9af9c656c3",
       "decision_ids": []
@@ -25407,7 +25947,7 @@
     {
       "id": "REQ-f96ea78b011d54559ab826b5",
       "source": "docs/charter-task-compliance.md",
-      "line": 102,
+      "line": 158,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "9c13c438c50091a2b1581fdd2821ff8357fb7023d95f7ccf7f197702c559115b",
       "decision_ids": []
@@ -25415,7 +25955,7 @@
     {
       "id": "REQ-21f8663b9f4589226bd3d116",
       "source": "docs/charter-task-compliance.md",
-      "line": 103,
+      "line": 159,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "022965ebf03f6813ac18f27b79068901c91c9b9e6951daa8ede90422778544e0",
       "decision_ids": []
@@ -25423,7 +25963,7 @@
     {
       "id": "REQ-733496e05318522c7fbf6e0e",
       "source": "docs/charter-task-compliance.md",
-      "line": 104,
+      "line": 160,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "803d96d7c6625c528390289c7df694501b7f987b37f578cab88f3d83ab246ec5",
       "decision_ids": []
@@ -25431,7 +25971,7 @@
     {
       "id": "REQ-0610fbe9e1bf4210f5a28049",
       "source": "docs/charter-task-compliance.md",
-      "line": 105,
+      "line": 161,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "fcafc71e5858c12679b63c792bebc87dca9406f6e0623df132ac54c0b7f97cb4",
       "decision_ids": []
@@ -25439,7 +25979,7 @@
     {
       "id": "REQ-8267c8768f310d679651e810",
       "source": "docs/charter-task-compliance.md",
-      "line": 106,
+      "line": 162,
       "section": "Every-task compliance assurance runbook / Failure, correction and closeout",
       "text_sha256": "70825d4c9c3badb305d76fb887e78b650fe16e45f719a7b4a65b469e72233125",
       "decision_ids": []
@@ -25447,7 +25987,7 @@
     {
       "id": "REQ-dcc02d9527bacaa7b9433b43",
       "source": "docs/charter-task-compliance.md",
-      "line": 108,
+      "line": 164,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "b7eba998bd358694e440f1735d94b41f80a4f321d3adcb1c38f7cc058175f3e2",
       "decision_ids": []
@@ -25455,7 +25995,7 @@
     {
       "id": "REQ-d947ec3b229957798da61b75",
       "source": "docs/charter-task-compliance.md",
-      "line": 110,
+      "line": 166,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "54e18ed7c8939f194f156a2c7b254dc8e6ddc6fbd9764053959bb0238d1a5bc1",
       "decision_ids": []
@@ -25463,7 +26003,7 @@
     {
       "id": "REQ-11c75e4246ff3d258e7a3322",
       "source": "docs/charter-task-compliance.md",
-      "line": 111,
+      "line": 167,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "c80322a2260769a90613382228ecd4ff60a13863677fb47cf118c5f92e4dd450",
       "decision_ids": []
@@ -25471,7 +26011,7 @@
     {
       "id": "REQ-d50878c8ec97e1180ce9ee91",
       "source": "docs/charter-task-compliance.md",
-      "line": 112,
+      "line": 168,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "2df22c2e1a67d536a9db351102c9677d254d9c1084fb3fe83f4593cc07dabead",
       "decision_ids": []
@@ -25479,7 +26019,7 @@
     {
       "id": "REQ-e9772b8164efe62acdfe0a0c",
       "source": "docs/charter-task-compliance.md",
-      "line": 113,
+      "line": 169,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "888febe26023b0c1cbc514f03b4f83a84825130c894189d57ba2fef05bd08108",
       "decision_ids": []
@@ -25487,7 +26027,7 @@
     {
       "id": "REQ-79b271c506444c67f1cc2124",
       "source": "docs/charter-task-compliance.md",
-      "line": 114,
+      "line": 170,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "b47c24b4e19ff7ec7208462c9e54ecb22d98434ac862598212bf52dbcd36803a",
       "decision_ids": []
@@ -25495,7 +26035,7 @@
     {
       "id": "REQ-df3ba1eee6d7f8376ed5ef71",
       "source": "docs/charter-task-compliance.md",
-      "line": 115,
+      "line": 171,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "20b99da38cec6ba9932516edb4b8f5d8c9b50b48b781e988cf4d587d0d419f5e",
       "decision_ids": []
@@ -25503,7 +26043,7 @@
     {
       "id": "REQ-ee129dce436ef6b2153c3db5",
       "source": "docs/charter-task-compliance.md",
-      "line": 116,
+      "line": 172,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "a3b023495e3aa8f18baabd042da37273701549c5744453221a0acb97baee89a8",
       "decision_ids": []
@@ -25511,7 +26051,7 @@
     {
       "id": "REQ-6517254b65ca578e80d5de1f",
       "source": "docs/charter-task-compliance.md",
-      "line": 118,
+      "line": 174,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "bc73f056548c0d0036ce538e3f18af653e63ff8f286f40894914d4470bc2f6a0",
       "decision_ids": []
@@ -25519,7 +26059,7 @@
     {
       "id": "REQ-6e836f9e29c469a8c509dfac",
       "source": "docs/charter-task-compliance.md",
-      "line": 119,
+      "line": 175,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "9985eb22603e3f823de5bbaaafe5b5e64339d29af85dfce96af4a314731fc91f",
       "decision_ids": []
@@ -25527,7 +26067,7 @@
     {
       "id": "REQ-962523ee3d1d932661f1af59",
       "source": "docs/charter-task-compliance.md",
-      "line": 120,
+      "line": 176,
       "section": "Every-task compliance assurance runbook / Integration and acceptance limits",
       "text_sha256": "174080efb4ba22f876b0467eb07830d0d22768926de9ef8d1f73fc8a11cb9418",
       "decision_ids": []
@@ -25535,7 +26075,7 @@
     {
       "id": "REQ-6bb501d2999f40652ad73897",
       "source": "docs/charter-task-compliance.md",
-      "line": 124,
+      "line": 180,
       "section": "Every-task compliance assurance runbook / Model reminders on every task [SAL-D139]",
       "text_sha256": "a4cc68d341c886e136d57b14fc5f217f418cb3437551fedda289ebf98c1e7899",
       "decision_ids": [
@@ -25545,7 +26085,7 @@
     {
       "id": "REQ-61493c63adb2e6d45455839d",
       "source": "docs/charter-task-compliance.md",
-      "line": 126,
+      "line": 182,
       "section": "Every-task compliance assurance runbook / Model reminders on every task [SAL-D139]",
       "text_sha256": "f9d6aafeb1c6aa0fade3e9d0d4ccc15872e30664808d82124a4a0787dff46cbd",
       "decision_ids": []
@@ -25553,7 +26093,7 @@
     {
       "id": "REQ-da0a4cb343f3711d8af12489",
       "source": "docs/charter-task-compliance.md",
-      "line": 128,
+      "line": 184,
       "section": "Every-task compliance assurance runbook / Model reminders on every task [SAL-D139]",
       "text_sha256": "df24a4863a12da43ed10c6ba2fc8f0e83e31e2ec6e7bc5b111e43ef15de2fcef",
       "decision_ids": []
@@ -25561,7 +26101,7 @@
     {
       "id": "REQ-3033a688fe10a5a668681ab7",
       "source": "docs/charter-task-compliance.md",
-      "line": 130,
+      "line": 186,
       "section": "Every-task compliance assurance runbook / Model reminders on every task [SAL-D139]",
       "text_sha256": "0ef1df46e8fe2b094c7d8164b82e7fe11f472753a0f75c274bf6078e62f65fb6",
       "decision_ids": []
@@ -25569,7 +26109,7 @@
     {
       "id": "REQ-e2d6902706b181eaaf78af72",
       "source": "docs/charter-task-compliance.md",
-      "line": 133,
+      "line": 189,
       "section": "Every-task compliance assurance runbook / Every-task analytical assurance [SAL-D143]",
       "text_sha256": "bd4de40cc29464671e2c883a6282f37ede16e206da66658badda5436c35bebee",
       "decision_ids": [
@@ -25579,7 +26119,7 @@
     {
       "id": "REQ-1e424719052b8486b9221f4b",
       "source": "docs/charter-task-compliance.md",
-      "line": 135,
+      "line": 191,
       "section": "Every-task compliance assurance runbook / Every-task analytical assurance [SAL-D143]",
       "text_sha256": "3183da78e02ed0c829ea0f4e679c65a1be0a47fc864f70365b31db9d13639afd",
       "decision_ids": []
@@ -25587,7 +26127,7 @@
     {
       "id": "REQ-58915b69ae40f615ae14b9c7",
       "source": "docs/charter-task-compliance.md",
-      "line": 137,
+      "line": 193,
       "section": "Every-task compliance assurance runbook / Every-task analytical assurance [SAL-D143]",
       "text_sha256": "9b3fe637cc6944035712b93cdf7f0c021100e8f3ede18709831615dcc0211f65",
       "decision_ids": [
@@ -25597,7 +26137,7 @@
     {
       "id": "REQ-411c34ecd4c30dacc2d1004b",
       "source": "docs/charter-task-compliance.md",
-      "line": 139,
+      "line": 195,
       "section": "Every-task compliance assurance runbook / Recording re-passes and the final editorial pass [SAL-D144]",
       "text_sha256": "3fb99cad3e56d2f1b167cab3a2563f0109d1458bb0799a2a26cc1621f3db655b",
       "decision_ids": [
@@ -25607,7 +26147,7 @@
     {
       "id": "REQ-231999796604be79358db598",
       "source": "docs/charter-task-compliance.md",
-      "line": 141,
+      "line": 197,
       "section": "Every-task compliance assurance runbook / Recording re-passes and the final editorial pass [SAL-D144]",
       "text_sha256": "b81cae79f65d8127688b189671e16dfe50cb81be227d6798459adeaf698e3fc4",
       "decision_ids": []
@@ -25615,7 +26155,7 @@
     {
       "id": "REQ-58453057209c1c6b47bd5034",
       "source": "docs/charter-task-compliance.md",
-      "line": 143,
+      "line": 199,
       "section": "Every-task compliance assurance runbook / Recording re-passes and the final editorial pass [SAL-D144]",
       "text_sha256": "ac50103b0bae896999b320e6a1be3da2827c469e2c76f64c0bccfbf2ac6d8ee1",
       "decision_ids": []
@@ -25623,7 +26163,7 @@
     {
       "id": "REQ-4b63032e67593899a14323a2",
       "source": "docs/charter-task-compliance.md",
-      "line": 145,
+      "line": 201,
       "section": "Every-task compliance assurance runbook / Recording re-passes and the final editorial pass [SAL-D144]",
       "text_sha256": "6bdc2e3b46ff9e70d892d6825d6c5e22943bc4a97ba172861762d458f4bb2577",
       "decision_ids": []
@@ -31744,7 +32284,8 @@
         "SALUS_PROGRAM_CHARTER.md",
         "SALUS_DECISION_REGISTER.md",
         "APPROVED_ARTIFACTS.md",
-        "SALUS_CHAT_STARTUP_PROTOCOL.md"
+        "SALUS_CHAT_STARTUP_PROTOCOL.md",
+        "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md"
       ],
       "state": "indexed"
     },
@@ -31939,5 +32480,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "127c3f8cc68ce4ad3948e40ee10b9e90c51e09607e4165dcc82d544644b07ffb"
+  "register_sha256": "dcdbee1d8fc171fa0e76a570547f513cea51f2b74443497ebfacf89eef846853"
 }

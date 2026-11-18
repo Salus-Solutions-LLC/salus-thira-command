@@ -8,12 +8,21 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
+
+# This tool is also loaded by file path from private, out-of-tree assurance scripts.
+# Resolve its maintained sibling independently of the operator's working directory.
+_research_spec = importlib.util.spec_from_file_location(
+    'assessment_research_entry', Path(__file__).with_name('assessment_research_entry.py'))
+_research_module = importlib.util.module_from_spec(_research_spec)
+_research_spec.loader.exec_module(_research_module)
+check_research_entry = _research_module.check_research_entry
 
 VERSION = 1
 MIN_SUBSTANTIVE_PASSES = 8
@@ -113,7 +122,9 @@ def new_task(catalog, task_id, objective, task_type='unclassified'):
     if not task_id.strip() or not objective.strip():
         raise ValueError('task identity and objective required')
     return {'schema_version': VERSION, 'task_id': task_id, 'objective': objective,
-            'task_type': task_type, 'model_reminder': {}, 'analytical_review': {}, 'review_passes': [],
+            'task_type': task_type, 'started_at': datetime.now(timezone.utc).isoformat(),
+            **({'assessment_research': {}} if task_type == 'assessment' else {}),
+            'model_reminder': {}, 'analytical_review': {}, 'review_passes': [],
             'register_sha256': catalog['register_sha256'],
             'scope': {'authorization': '', 'boundary': '', 'limitations': []},
             'requirements': [{'id': u['id'], 'state': 'pending', 'reason': '',
@@ -187,7 +198,167 @@ def review_pass_checks(task, verified):
     return errors, counts
 
 
-def check(root, catalog, task, evidence_root, now=None):
+def read_evidence(task, evidence_root):
+    errors = set()
+    evidence, verified = task.get('evidence', {}), {}
+    if not isinstance(evidence, dict):
+        errors.add('EVIDENCE_INVALID')
+        evidence = {}
+    for eid, item in evidence.items():
+        try:
+            path = confined(evidence_root, item['path'])
+            raw = path.read_bytes()
+            if not raw or fingerprint(raw) != item['sha256']:
+                raise ValueError('evidence changed/empty')
+            if not item.get('provenance') or not item.get('method') or item.get('result') != 'verified':
+                raise ValueError('evidence verification missing')
+            if item['method'] in {'attestation', 'filename', 'metadata_only'}:
+                raise ValueError('assertion is not performance evidence')
+            verified[eid] = raw
+        except (OSError, ValueError, KeyError, TypeError):
+            errors.add('EVIDENCE_INVALID:' + str(eid))
+    return evidence, verified, errors
+
+
+def location_checks(task, verified, now):
+    errors = set()
+    def proof(ids):
+        return isinstance(ids, list) and bool(ids) and all(isinstance(i, str) and i in verified for i in ids)
+    locations = task.get('locations', {})
+    if set(locations) != LOCATIONS:
+        errors.add('LOCATION_MEMBERSHIP_MISMATCH')
+    for kind in LOCATIONS:
+        loc = locations.get(kind, {})
+        if loc.get('state') != 'considered' or not proof(loc.get('evidence')):
+            errors.add('LOCATION_OPEN:' + kind)
+            continue
+        try:
+            before = json.loads(verified[loc['before']])
+            after = json.loads(verified[loc['after']])
+            review = json.loads(verified[loc['review']])
+            if any(loc[k] not in loc.get('evidence', []) for k in ('before', 'after', 'review')):
+                raise ValueError('unbound inventory')
+            if before != after:
+                raise ValueError('inventory drift')
+            if before['task_id'] != task['task_id'] or review['task_id'] != task['task_id'] or before['boundary'] != loc['boundary']:
+                raise ValueError('foreign receipt')
+            timestamp = datetime.fromisoformat(before['observed_at'])
+            age = (now - timestamp).total_seconds()
+            if timestamp.tzinfo is None or not 0 <= age <= 86400:
+                raise ValueError('stale or future snapshot')
+            inventory = before['items']
+            members = [(i['id'], i['version']) for i in inventory]
+            considered = [(i['id'], i['version']) for i in review['items']]
+            if len(members) != len(set(members)) or len(considered) != len(set(considered)) or set(members) != set(considered):
+                raise ValueError('coverage does not reconcile')
+            if not before.get('authority') or not loc.get('discovery_method'):
+                raise ValueError('unidentified boundary')
+            for item in review['items']:
+                if not item.get('reason') or item.get('state') not in {'content_reviewed', 'screened_no_match', 'unavailable'}:
+                    raise ValueError('no source disposition')
+                if item.get('relevant') is not False and item.get('state') != 'content_reviewed':
+                    raise ValueError('required relevant content unavailable')
+                if item['state'] == 'content_reviewed' and (not proof(item.get('evidence')) or not item.get('portion_reviewed') or not item.get('where_used')):
+                    raise ValueError('content-review proof missing')
+            if kind == 'internet':
+                queries = loc['queries']
+                if not queries or any(not q.get('query') or not q.get('searched_at') or not proof(q.get('evidence')) for q in queries):
+                    raise ValueError('internet search missing')
+                for item in review['items']:
+                    if not item.get('url', '').startswith(('https://', 'http://')) or not item.get('publisher') or not item.get('title') or not item.get('accessed_at'):
+                        raise ValueError('source bibliography incomplete')
+        except (OSError, ValueError, KeyError, TypeError):
+            errors.add('COVERAGE_NOT_VERIFIED:' + kind)
+    return errors
+
+
+def entry_bindings(task, verified):
+    entry = task['assessment_research']
+    reviews = {kind: task['locations'][kind]['review'] for kind in sorted(LOCATIONS)}
+    pending = [entry['scope'], entry['research'], *reviews.values()]
+    bound = {}
+    while pending:
+        eid = pending.pop()
+        if eid in bound:
+            continue
+        raw = verified[eid]
+        source = task['evidence'][eid]
+        bound[eid] = fingerprint([fingerprint(raw), source['provenance'], source['method']])
+        # Records refer to underlying originals, searches, extracts and request bytes by ID.
+        # New report evidence can be appended later without changing this closed research set.
+        try:
+            values = [json.loads(raw)]
+        except (UnicodeError, ValueError):
+            continue
+        while values:
+            value = values.pop()
+            if isinstance(value, dict):
+                values.extend(value.values())
+            elif isinstance(value, list):
+                values.extend(value)
+            elif isinstance(value, str) and value in verified and value not in bound:
+                pending.append(value)
+    return {
+        'scope_sha256': fingerprint(verified[entry['scope']]),
+        'research_sha256': fingerprint(verified[entry['research']]),
+        'location_reviews': {kind: fingerprint(verified[ref]) for kind, ref in reviews.items()},
+        'research_evidence_sha256': fingerprint(bound),
+    }
+
+
+def make_entry_checkpoint(root, catalog, task, evidence_root, now=None):
+    now = now or datetime.now(timezone.utc)
+    _, verified, errors = read_evidence(task, evidence_root)
+    if task.get('task_type') != 'assessment' or not task.get('task_id') or not task.get('objective'):
+        errors.add('ASSESSMENT_SCOPE_REQUIRED')
+    if not task.get('scope', {}).get('authorization') or not task.get('scope', {}).get('boundary'):
+        errors.add('SCOPE_OR_AUTHORIZATION_MISSING')
+    if register(root) != catalog or task.get('register_sha256') != catalog.get('register_sha256'):
+        errors.add('AUTHORITY_OR_REGISTER_DRIFT')
+    errors.update(location_checks(task, verified, now))
+    errors.update(check_research_entry(task, verified, now, preflight=True))
+    recommendations = task.get('analytical_review', {}).get('recommendations', {})
+    if (task.get('assessment_research', {}).get('analysis') or task.get('outputs') or
+            recommendations.get('state') == 'reviewed'):
+        errors.add('ENTRY_AFTER_SUBSTANTIVE_ASSESSMENT')
+    return {'kind': 'assessment_research_entry', 'task_id': task.get('task_id'),
+            'checked_at': now.isoformat(), 'register_sha256': catalog.get('register_sha256'),
+            'task_sha256': fingerprint(task), 'result': 'entry_verified' if not errors else 'candidate_only',
+            'errors': sorted(errors), 'prior_evidence_sha256': sorted({fingerprint(raw) for raw in verified.values()}),
+            'bindings': entry_bindings(task, verified) if not errors else {}}
+
+
+def check_entry_checkpoint(task, verified, catalog, now, journal_path):
+    try:
+        checkpoint = json.loads(verified[task['assessment_entry_receipt']])
+        entry = task['assessment_research']
+        scope = json.loads(verified[entry['scope']])
+        research = json.loads(verified[entry['research']])
+        analysis = json.loads(verified[entry['analysis']])
+        examined = {eid for row in task.get('review_passes', []) if isinstance(row, dict)
+                    for eid in row.get('reviewed', []) if isinstance(eid, str)}
+        delivered = {row.get('evidence') for row in task.get('outputs', []) if isinstance(row, dict)}
+        if (analysis['output'] not in examined | delivered or
+                fingerprint(verified[analysis['output']]) in checkpoint['prior_evidence_sha256']):
+            raise ValueError('the recorded first analysis has no link to the reviewed or delivered work')
+        start, research_at, checked_at, analysis_at = (
+            datetime.fromisoformat(value) for value in
+            (scope['at'], research['at'], checkpoint['checked_at'], analysis['at']))
+        if not journal_path or checkpoint not in [event['result'] for event in read_journal(
+                journal_path, task['task_id'])['events']]:
+            raise ValueError('the retained task journal does not contain this entry decision')
+        if (checkpoint['kind'] != 'assessment_research_entry' or
+                checkpoint['task_id'] != task['task_id'] or checkpoint['result'] != 'entry_verified' or
+                checkpoint['register_sha256'] != catalog['register_sha256'] or
+                checkpoint['errors'] != [] or checkpoint['bindings'] != entry_bindings(task, verified) or
+                not start <= research_at <= checked_at < analysis_at <= now):
+            raise ValueError('entry record no longer matches the assessed research or its timing')
+    except (KeyError, ValueError, TypeError, UnicodeError, OSError):
+        return {'PROSPECTIVE_ASSESSMENT_ENTRY_NOT_VERIFIED'}
+    return set()
+
+
+def check(root, catalog, task, evidence_root, now=None, *, journal_path=None):
     """Return fail-closed codes; never execute evidence commands or repair data."""
     errors = set()
     def fail(code):
@@ -208,23 +379,8 @@ def check(root, catalog, task, evidence_root, now=None):
         fail('ROUTINE_COMPLIANCE_IS_ASSISTANT_RESPONSIBILITY')
     if task.get('verification_owner') != 'Salus assistant':
         fail('VERIFICATION_OWNER_MISSING')
-    evidence, verified = task.get('evidence', {}), {}
-    if not isinstance(evidence, dict):
-        fail('EVIDENCE_INVALID')
-        evidence = {}
-    for eid, item in evidence.items():
-        try:
-            path = confined(evidence_root, item['path'])
-            raw = path.read_bytes()
-            if not raw or fingerprint(raw) != item['sha256']:
-                raise ValueError('evidence changed/empty')
-            if not item.get('provenance') or not item.get('method') or item.get('result') != 'verified':
-                raise ValueError('evidence verification missing')
-            if item['method'] in {'attestation', 'filename', 'metadata_only'}:
-                raise ValueError('assertion is not performance evidence')
-            verified[eid] = raw
-        except (OSError, ValueError, KeyError, TypeError):
-            fail('EVIDENCE_INVALID:' + str(eid))
+    evidence, verified, proof_errors = read_evidence(task, evidence_root)
+    errors.update(proof_errors)
     def proof(ids):
         return isinstance(ids, list) and bool(ids) and all(isinstance(i, str) and i in verified for i in ids)
     review_errors, review_counts = review_pass_checks(task, verified)
@@ -314,51 +470,10 @@ def check(root, catalog, task, evidence_root, now=None):
         if value.get('state') not in {'resolved', 'not_applicable'} or not value.get('reason') or not proof(value.get('evidence')):
             fail('REFERENCED_AUTHORITY_OPEN')
     now = now or datetime.now(timezone.utc)
-    locations = task.get('locations', {})
-    if set(locations) != LOCATIONS:
-        fail('LOCATION_MEMBERSHIP_MISMATCH')
-    for kind in LOCATIONS:
-        loc = locations.get(kind, {})
-        if loc.get('state') != 'considered' or not proof(loc.get('evidence')):
-            fail('LOCATION_OPEN:' + kind)
-            continue
-        try:
-            before = json.loads(verified[loc['before']])
-            after = json.loads(verified[loc['after']])
-            review = json.loads(verified[loc['review']])
-            if any(loc[k] not in loc.get('evidence', []) for k in ('before', 'after', 'review')):
-                raise ValueError('unbound inventory')
-            if before != after:
-                raise ValueError('inventory drift')
-            if before['task_id'] != task['task_id'] or review['task_id'] != task['task_id'] or before['boundary'] != loc['boundary']:
-                raise ValueError('foreign receipt')
-            timestamp = datetime.fromisoformat(before['observed_at'])
-            age = (now - timestamp).total_seconds()
-            if timestamp.tzinfo is None or not 0 <= age <= 86400:
-                raise ValueError('stale or future snapshot')
-            inventory = before['items']
-            members = [(i['id'], i['version']) for i in inventory]
-            considered = [(i['id'], i['version']) for i in review['items']]
-            if len(members) != len(set(members)) or len(considered) != len(set(considered)) or set(members) != set(considered):
-                raise ValueError('coverage does not reconcile')
-            if not before.get('authority') or not loc.get('discovery_method'):
-                raise ValueError('unidentified boundary')
-            for item in review['items']:
-                if not item.get('reason') or item.get('state') not in {'content_reviewed', 'screened_no_match', 'unavailable'}:
-                    raise ValueError('no source disposition')
-                if item.get('relevant') is not False and item.get('state') != 'content_reviewed':
-                    raise ValueError('required relevant content unavailable')
-                if item['state'] == 'content_reviewed' and (not proof(item.get('evidence')) or not item.get('portion_reviewed') or not item.get('where_used')):
-                    raise ValueError('content-review proof missing')
-            if kind == 'internet':
-                queries = loc['queries']
-                if not queries or any(not q.get('query') or not q.get('searched_at') or not proof(q.get('evidence')) for q in queries):
-                    raise ValueError('internet search missing')
-                for item in review['items']:
-                    if not item.get('url', '').startswith(('https://', 'http://')) or not item.get('publisher') or not item.get('title') or not item.get('accessed_at'):
-                        raise ValueError('source bibliography incomplete')
-        except (OSError, ValueError, KeyError, TypeError):
-            fail('COVERAGE_NOT_VERIFIED:' + kind)
+    errors.update(location_checks(task, verified, now))
+    if task.get('task_type') == 'assessment':
+        errors.update(check_research_entry(task, verified, now))
+        errors.update(check_entry_checkpoint(task, verified, catalog, now, journal_path))
     capture = task.get('capture', {})
     if capture.get('state') != 'reconciled' or capture.get('expected') != capture.get('retained') or not isinstance(capture.get('expected'), int) or capture.get('expected', 0) < 1 or not proof(capture.get('evidence')) or not capture.get('destination'):
         fail('CAPTURE_NOT_RECONCILED')
@@ -442,6 +557,8 @@ def reconcile(task, catalog):
     # Reconciliation of an older open task starts its new ledger empty.
     result = dict(task)
     result.setdefault('review_passes', [])
+    if task.get('task_type') == 'assessment':
+        result.setdefault('assessment_research', {})
     if task.get('register_sha256') == catalog['register_sha256']:
         return result
     updated = new_task(catalog, task['task_id'], task['objective'])
@@ -454,11 +571,11 @@ def reconcile(task, catalog):
     return result
 
 
-def _journal_unlocked(path, result):
-    """One local task ledger; hash chain detects accidental history edits."""
+def read_journal(path, task_id):
+    """Read and verify the local task history before trusting or extending it."""
     path = Path(path)
-    state = load(path) if path.exists() else {'task_id': result['task_id'], 'events': [], 'corrections': {}}
-    if state.get('task_id') != result['task_id']:
+    state = load(path) if path.exists() else {'task_id': task_id, 'events': [], 'corrections': {}}
+    if state.get('task_id') != task_id:
         raise ValueError('foreign task journal')
     if state['events'] and state['events'][-1]['corrections_sha256'] != fingerprint(state['corrections']):
         raise ValueError('corrective-action history changed')
@@ -468,6 +585,12 @@ def _journal_unlocked(path, result):
         if payload['previous_sha256'] != previous or fingerprint(payload) != event['event_sha256']:
             raise ValueError('journal history changed')
         previous = event['event_sha256']
+    return state
+
+
+def _journal_unlocked(path, result):
+    state = read_journal(path, result['task_id'])
+    previous = state['events'][-1]['event_sha256'] if state['events'] else '0' * 64
     errors = set(result['errors'])
     for code in errors:
         cid = 'CAPA-' + fingerprint([result['task_id'], code])[:16]
@@ -509,7 +632,7 @@ def journal(path, result):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['register', 'init', 'reconcile', 'verify'])
+    parser.add_argument('command', choices=['register', 'init', 'reconcile', 'research-entry', 'verify'])
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--register', type=Path, required=True)
     parser.add_argument('--task', type=Path)
@@ -541,14 +664,23 @@ def main(argv=None):
         else:
             if not all([args.task, args.evidence_root, args.receipt, args.journal]):
                 raise ValueError('verification arguments required')
-            # Never let a receipt or journal replace authority, task or evidence.
+            task = load(args.task)
+            catalog = load(args.register)
             inputs = {args.task.resolve(), args.register.resolve()}
-            for e in load(args.task).get('evidence', {}).values():
+            for e in task.get('evidence', {}).values():
                 inputs.add(confined(args.evidence_root, e['path']))
             targets = {args.receipt.resolve(), args.journal.resolve()}
             if len(targets) != 2 or targets & inputs or any(t.is_relative_to(args.root.resolve()) for t in targets):
                 raise ValueError('record destinations must be separate and outside repository/authority root')
-            result = check(args.root, load(args.register), load(args.task), args.evidence_root)
+            if args.command == 'research-entry':
+                result = make_entry_checkpoint(args.root, catalog, task, args.evidence_root)
+                save(args.receipt, result, exclusive=True)
+                # A receipt alone cannot establish a prior event. If journaling fails, retain
+                # the unanchored candidate and retry to a fresh path after repairing the ledger.
+                journal(args.journal, result)
+                print(json.dumps({'result': result['result'], 'errors': result['errors']}))
+                return 0 if result['result'] == 'entry_verified' else 2
+            result = check(args.root, catalog, task, args.evidence_root, journal_path=args.journal)
             journal(args.journal, result)
             save(args.receipt, result)
             print(json.dumps({'task_id': result['task_id'], 'result': result['result'],
