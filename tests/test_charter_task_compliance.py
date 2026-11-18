@@ -31,6 +31,14 @@ class ComplianceGateTests(unittest.TestCase):
         self.add_evidence('proof', {'method': 'fictional test execution', 'outcome': 'expected result'})
         self.task['task_type'] = 'other'
         self.remind('gpt-6.1-sol', 'medium', 'Please switch to GPT-6.1 Sol at Medium reasoning.')
+        self.task['analytical_review'] = {}
+        for lens in gate.ANALYTICAL_LENSES:
+            row = {'state': 'reviewed', 'conclusion': 'Fictional conclusion for ' + lens,
+                   'reasoning': 'Fictional comparison and basis for ' + lens,
+                   'limitations': ['Fictional fixture scope only'], 'evidence': ['review-' + lens]}
+            self.add_evidence('review-' + lens, {'task_id': self.task['task_id'], 'lens': lens,
+                **{k: row[k] for k in ('conclusion', 'reasoning', 'limitations')}})
+            self.task['analytical_review'][lens] = row
         for row in self.task['requirements']:
             row.update(state='met', reason='Fictional predicate proved by fixture', evidence=['proof'],
                        checks=[{'criterion': 'Fixture criterion', 'result': 'pass', 'evidence': ['proof']}])
@@ -86,8 +94,8 @@ class ComplianceGateTests(unittest.TestCase):
 
     def test_assessment_reminder_passes_without_switch_confirmation(self):
         self.task['task_type'] = 'assessment'
-        self.remind('gpt-6-astra', 'highest_available',
-                    'Please switch to GPT-6 Astra at the highest available reasoning setting.')
+        self.remind('gpt-6.2-astra', 'highest_available',
+                    'Please switch to GPT-6.2 Astra at the highest available reasoning setting.')
         self.assertEqual(self.result()['result'], 'verified_record')
 
     def test_missing_reminder_is_blocked(self):
@@ -103,8 +111,8 @@ class ComplianceGateTests(unittest.TestCase):
         self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
 
     def test_other_work_using_assessment_reminder_is_blocked(self):
-        self.remind('gpt-6-astra', 'highest_available',
-                    'Please switch to GPT-6 Astra at the highest available reasoning setting.')
+        self.remind('gpt-6.2-astra', 'highest_available',
+                    'Please switch to GPT-6.2 Astra at the highest available reasoning setting.')
         self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
 
     def test_wrong_reasoning_is_blocked(self):
@@ -124,7 +132,7 @@ class ComplianceGateTests(unittest.TestCase):
         self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
 
     def test_reminder_fields_cannot_disguise_wrong_visible_text(self):
-        self.task['model_reminder']['text'] = 'Please switch to GPT-6 Astra at highest reasoning.'
+        self.task['model_reminder']['text'] = 'Please switch to GPT-6.2 Astra at highest reasoning.'
         self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
 
     def test_false_automatic_switch_claim_is_blocked(self):
@@ -138,8 +146,8 @@ class ComplianceGateTests(unittest.TestCase):
     def test_reminder_rechecked_at_task_category_change(self):
         self.task['task_type'] = 'assessment'
         self.assertIn('TASK_MODEL_REMINDER_NOT_VERIFIED', self.result()['errors'])
-        self.remind('gpt-6-astra', 'highest_available',
-                    'Please switch to GPT-6 Astra at highest available reasoning.')
+        self.remind('gpt-6.2-astra', 'highest_available',
+                    'Please switch to GPT-6.2 Astra at highest available reasoning.')
         self.assertEqual(self.result()['result'], 'verified_record')
         self.task['task_type'] = 'other'
         self.assertIn('TASK_MODEL_REMINDER_NOT_VERIFIED', self.result()['errors'])
@@ -155,6 +163,95 @@ class ComplianceGateTests(unittest.TestCase):
     def test_malformed_reminder_evidence_is_blocked(self):
         self.add_evidence('reminder', ['not-a-reminder-record'])
         self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+
+    def test_previous_astra_model_is_rejected_for_current_assessment(self):
+        self.task['task_type'] = 'assessment'
+        self.remind('gpt-6-astra', 'highest_available',
+                    'Please switch to GPT-6 Astra at highest available reasoning.')
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_previous_astra_visible_text_cannot_disguise_new_model(self):
+        self.task['task_type'] = 'assessment'
+        self.remind('gpt-6.2-astra', 'highest_available',
+                    'Please switch to GPT-6 Astra at highest available reasoning.')
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_assessment_reasoning_cannot_silently_drop_to_medium(self):
+        self.task['task_type'] = 'assessment'
+        self.remind('gpt-6.2-astra', 'medium',
+                    'Please switch to GPT-6.2 Astra at highest available reasoning.')
+        self.rejects('TASK_MODEL_REMINDER_NOT_VERIFIED')
+
+    def test_missing_analytical_review_is_rejected(self):
+        del self.task['analytical_review']
+        self.rejects('ANALYTICAL_REVIEW_MEMBERSHIP_MISMATCH')
+
+    def test_each_analytical_duty_is_mandatory(self):
+        for lens in gate.ANALYTICAL_LENSES:
+            with self.subTest(lens=lens):
+                saved = self.task['analytical_review'].pop(lens)
+                self.rejects('ANALYTICAL_REVIEW_MEMBERSHIP_MISMATCH')
+                self.task['analytical_review'][lens] = saved
+
+    def test_unknown_analytical_duty_cannot_replace_required_review(self):
+        self.task['analytical_review']['extra'] = {}
+        self.rejects('ANALYTICAL_REVIEW_MEMBERSHIP_MISMATCH')
+
+    def test_blanket_not_applicable_cannot_skip_analytical_duty(self):
+        self.task['analytical_review']['methodologies']['state'] = 'not_applicable'
+        self.rejects('ANALYTICAL_REVIEW_NOT_VERIFIED:methodologies')
+
+    def test_analytical_conclusion_and_reasoning_are_required(self):
+        for field in ('conclusion', 'reasoning'):
+            with self.subTest(field=field):
+                row = self.task['analytical_review']['assumptions']
+                saved = row[field]
+                row[field] = ' '
+                self.rejects('ANALYTICAL_REVIEW_NOT_VERIFIED:assumptions')
+                row[field] = saved
+
+    def test_analytical_limits_are_required(self):
+        self.task['analytical_review']['recommendations']['limitations'] = []
+        self.rejects('ANALYTICAL_REVIEW_NOT_VERIFIED:recommendations')
+
+    def test_analytical_proof_is_required(self):
+        self.task['analytical_review']['evidence_and_consequences']['evidence'] = []
+        self.rejects('ANALYTICAL_REVIEW_NOT_VERIFIED:evidence_and_consequences')
+
+    def test_analytical_proof_from_foreign_task_is_rejected(self):
+        self.mutate_evidence('review-assumptions', lambda x: x.update(task_id='other-task'))
+        self.rejects('ANALYTICAL_REVIEW_NOT_VERIFIED:assumptions')
+
+    def test_analytical_proof_from_wrong_duty_is_rejected(self):
+        self.mutate_evidence('review-methodologies', lambda x: x.update(lens='recommendations'))
+        self.rejects('ANALYTICAL_REVIEW_NOT_VERIFIED:methodologies')
+
+    def test_analytical_summary_must_match_evidence(self):
+        self.task['analytical_review']['recommendations']['conclusion'] = 'Unproved changed recommendation'
+        self.rejects('ANALYTICAL_REVIEW_NOT_VERIFIED:recommendations')
+
+    def test_bounded_no_conflict_result_is_allowed_with_review_proof(self):
+        lens = 'evidence_and_consequences'
+        row = self.task['analytical_review'][lens]
+        row['conclusion'] = 'No material conflict found in the two fictional source versions reviewed.'
+        row['reasoning'] = 'Compared both complete fictional records; considered side effects of assuming agreement.'
+        self.add_evidence('review-' + lens, {'task_id': self.task['task_id'], 'lens': lens,
+            **{k: row[k] for k in ('conclusion', 'reasoning', 'limitations')}})
+        self.assertEqual(self.result()['result'], 'verified_record')
+
+    def test_brief_status_task_still_requires_all_four_reviews(self):
+        self.task['objective'] = 'Brief status answer'
+        del self.task['analytical_review']['methodologies']
+        self.rejects('ANALYTICAL_REVIEW_MEMBERSHIP_MISMATCH')
+
+    def test_malformed_analytical_record_is_rejected(self):
+        self.task['analytical_review']['assumptions'] = []
+        self.rejects('ANALYTICAL_REVIEW_NOT_VERIFIED:assumptions')
+
+    def test_malformed_analytical_evidence_is_rejected(self):
+        self.add_evidence('review-assumptions', ['not a review'])
+        self.rejects('ANALYTICAL_REVIEW_NOT_VERIFIED:assumptions')
 
 
     def test_complete_record_needs_no_routine_human_attestation(self):

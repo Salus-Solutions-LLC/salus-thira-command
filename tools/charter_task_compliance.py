@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 VERSION = 1
+ANALYTICAL_LENSES = {'assumptions', 'methodologies', 'evidence_and_consequences', 'recommendations'}
 ROOTS = (
     'SALUS_PROGRAM_CHARTER.md', 'SALUS_DECISION_REGISTER.md',
     'APPROVED_ARTIFACTS.md', 'SALUS_CHAT_STARTUP_PROTOCOL.md',
@@ -111,7 +112,7 @@ def new_task(catalog, task_id, objective, task_type='unclassified'):
     if not task_id.strip() or not objective.strip():
         raise ValueError('task identity and objective required')
     return {'schema_version': VERSION, 'task_id': task_id, 'objective': objective,
-            'task_type': task_type, 'model_reminder': {},
+            'task_type': task_type, 'model_reminder': {}, 'analytical_review': {},
             'register_sha256': catalog['register_sha256'],
             'scope': {'authorization': '', 'boundary': '', 'limitations': []},
             'requirements': [{'id': u['id'], 'state': 'pending', 'reason': '',
@@ -175,7 +176,7 @@ def check(root, catalog, task, evidence_root, now=None):
         except (ValueError, KeyError, TypeError, AttributeError, UnicodeError):
             return False
     reminder = task.get('model_reminder', {})
-    required = {'assessment': ('gpt-6-astra', 'highest_available', 'gpt-6 astra', 'highest'),
+    required = {'assessment': ('gpt-6.2-astra', 'highest_available', 'gpt-6.2 astra', 'highest'),
                 'other': ('gpt-6.1-sol', 'medium', 'gpt-6.1 sol', 'medium')}.get(task.get('task_type'))
     try:
         text_value = normalize_reminder(reminder['text'])
@@ -190,6 +191,36 @@ def check(root, catalog, task, evidence_root, now=None):
             raise ValueError('reminder text not present in retained evidence')
     except (ValueError, KeyError, TypeError, AttributeError, UnicodeError):
         fail('TASK_MODEL_REMINDER_NOT_VERIFIED')
+    # Correlate all four recorded analytical duties; meaning/adequacy remains
+    # an analyst responsibility backed by actual sources, tests and outputs.
+    def analytical_proved(eid, lens, row):
+        try:
+            payload = json.loads(verified[eid])
+            return (isinstance(payload, dict) and payload.get('task_id') == task['task_id']
+                    and payload.get('lens') == lens and all(payload.get(k) == row[k]
+                    for k in ('conclusion', 'reasoning', 'limitations')))
+        except (ValueError, KeyError, TypeError, AttributeError, UnicodeError):
+            return False
+    analytical = task.get('analytical_review', {})
+    if not isinstance(analytical, dict) or set(analytical) != ANALYTICAL_LENSES:
+        fail('ANALYTICAL_REVIEW_MEMBERSHIP_MISMATCH')
+    else:
+        for lens, row in analytical.items():
+            try:
+                if not isinstance(row, dict) or row.get('state') != 'reviewed':
+                    raise ValueError('analytical duty not reviewed')
+                if any(not isinstance(row.get(k), str) or not row[k].strip()
+                       for k in ('conclusion', 'reasoning')):
+                    raise ValueError('analytical conclusion or reasoning missing')
+                limits = row.get('limitations')
+                if not isinstance(limits, list) or not limits or any(
+                        not isinstance(v, str) or not v.strip() for v in limits):
+                    raise ValueError('analytical scope/uncertainty limits missing')
+                if not proof(row.get('evidence')) or not any(
+                        analytical_proved(eid, lens, row) for eid in row['evidence']):
+                    raise ValueError('analytical review has no current task-correlated proof')
+            except (ValueError, KeyError, TypeError, AttributeError, UnicodeError):
+                fail('ANALYTICAL_REVIEW_NOT_VERIFIED:' + lens)
     expected = {u['id'] for u in catalog['units']}
     records = task.get('requirements', [])
     ids = [r.get('id') for r in records if isinstance(r, dict)]

@@ -9,14 +9,14 @@
     "AGENTS.md"
   ],
   "sources": {
-    "AGENTS.md": "a15ceed9ecc02e98e0a22d7f3d0ca2b4291f74009a2084c6990df15fb4938ebe",
-    "APPROVED_ARTIFACTS.md": "ed21e93d5f1906995db88a596511d4ca801fcb4319200fd8005d3c2963f58165",
-    "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md": "8c2b485d105fff0403e15c17c864f9b3b351988cf7ff189e36f970ddad6fa76d",
+    "AGENTS.md": "80d0d06a156e9a49044777c8ecb865d5c546afe57ae86dfb20a695bd2d766891",
+    "APPROVED_ARTIFACTS.md": "1b8508b182bc1cc5e56370f789b83d6138948f5c4cd5601907ad444aaa12eb37",
+    "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md": "e10ad8bbf42c6af6d2e701c886a9ba03b8a3c947610d737990b42931a7a4e3c8",
     "SALUS_ASSESSMENT_REPORT_PURPOSE_AND_EDITORIAL_STANDARD.md": "da3798e4e66518e80e99b221601072268299c606cd7cf14cf3c5cecca37950b4",
     "SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md": "e1c08668dfec2b175d6730f105980c07e9e96484223df82d1edad92d9d3af804",
-    "SALUS_CHAT_STARTUP_PROTOCOL.md": "da76bfba5a8db1d7207ab724544893167cba7dbf9fca085b0cbc9fecb36ffff2",
+    "SALUS_CHAT_STARTUP_PROTOCOL.md": "34e5733259e498e2c7025db22f0fc38adbb2576e1acfebc78e4f41e96618f7ed",
     "SALUS_DECISION_RECORD_WORKSHEET.md": "8752a8a1f1dc5a13514d0da8992fb8241bb964e40c98f3a34ff0eca1d4078b85",
-    "SALUS_DECISION_REGISTER.md": "92623a289dce14e8afc3f402aa32810c4257b9242049df56d425f045fb61503a",
+    "SALUS_DECISION_REGISTER.md": "fc2b3c7ca7d4098ddd4b3b69155344fde871e2b2a3ce3c736134c08d75269bfd",
     "SALUS_DECISION_TO_PROOF_IMPLEMENTATION_CROSSWALK.md": "93c306729dffe3d18d19157be16c8dfb82b4963caa1c84b1012e1da07f04a917",
     "SALUS_DOCUMENT_DESIGN_AND_PRINT_LEGIBILITY_STANDARD.md": "bdeaf8623c5f6f24339d47227dfa431cd7a9f479b427543089408d41c3fb333e",
     "SALUS_ENTERPRISE_DECISION_TO_PROOF_OPERATING_STANDARD.md": "1560e28807b65b78d7998623fa64e088369fd437e0b04212894ccf08d3003aae",
@@ -28,7 +28,7 @@
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
     "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "ba2658b4f7bbaf7ed679b1d52a272048c740349c9946cb6fbf3b86b3ada4983a",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
-    "SALUS_PROGRAM_CHARTER.md": "023f4e8f3533b750412411e3ddb9066bcadd502f2b5dc944334e19cee26fe1a8",
+    "SALUS_PROGRAM_CHARTER.md": "3db43fb27ebe30f46ab15e15a47fb9b8553c3e43be7eb36614513f62ad446195",
     "SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md": "e2a6c9f76dd33e291305fec43548ad0021a1cf44d0acaaa87f075bea57eb9409",
     "SALUS_RESEARCH_CAPTURE_AND_KNOWLEDGE_TRANSFER_STANDARD.md": "aa0ae006af695af39c14a5194e3a0568dcc3481eab4ffbf1b2d487c12ef9df19",
     "SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md": "c33bb8e1d06ffc574e941f14ce3961e83bc7b6291f0579eda1e9155bc35fe1b7",
@@ -36,13 +36,13 @@
     "SALUS_SALINTEL_SALTHIRA_METHOD_STANDARD.md": "67010e0bf0d71952203156fbcaeda7fd9ddfbbfc241228084146bc12a580e3da",
     "SALUS_SALOPS_METHOD_REPORT_STANDARD.md": "e9572afa8f0dea2faeda8f9d00c24430afcec46aa5c0edaaa0f8d1d114554315",
     "SALUS_SUPPLY_CHAIN_RESILIENCE_ASSESSMENT_STANDARD.md": "11b3aac031669018382549983e7aca26f71231dd5e858aeb43490c8410cd7d90",
-    "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md": "d3af992d8d09420843ff54448e09013bcd70262c9f7122a3ff59cc3d73d9a5ab",
+    "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md": "8d35c1705f642b58b66a2c1b723bb177c9ea83cde9ca78b4d61413817bc2c658",
     "SALUS_THOUGHT_LEADER_RECONCILIATION_20260928.md": "679104ec368fcac96e81f0fec62b41b372e97ccac71dfd0a803fa523705e79e3",
     "SALUS_THOUGHT_LEADER_RESEARCH_STANDARD.md": "1df625d444ef47560a3c5794b8625f8e6497026c5c4fe2f2db5f6357f3fb415e",
     "SALUS_THREE_LEVEL_SERVICE_FRAMEWORK.md": "ab2290007355f2d3b0dc38e26ab9b60503c49129c94caf316bcfc482a952ccee",
     "Salus_Knowledge_and_Records_Architecture.md": "f8a73392a0183fdb823681b00b37e170b7eae0e9bbe01591d4ecd1c4008133a1",
     "docs/AZURE_DEFENDER_STORAGE_SCANNER.md": "ad38b2ad10f49d5b2d1d51c5dbb5ccfba309bc5b714c80ef83274b5ab1ac8f32",
-    "docs/charter-task-compliance.md": "9a5422afa277fa8dc2f79d09215e28d2ab1d0821105abbc8fc7c0e88b7aa2db5",
+    "docs/charter-task-compliance.md": "f8f9f7e808aea6619bedfd4154b91626b9d9c658cb466f08a052ce245226d727",
     "docs/package_quote_authorization_contract.md": "fc9e9d11e3f07afb2857793608aeceae2e13316db9416c9797b3a48242d24410",
     "docs/persistent-assessment-worker.md": "601dc1a7e598b20b417fcaeeccd88776fee7ccca7b537738cf7ae020eecbe87f",
     "proposals/SALD055_LEVEL_SERVICE_AND_COMMERCIAL_COPY_CANDIDATE_20260928.md": "5f61de51a9338596909c5226938d1de8bd211628c85b930d298c82b4ed84f191",
@@ -142,13 +142,24 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-55e826b14124f49a0dea3a31",
+      "id": "REQ-b0d2b09792df7e372cb4694f",
       "source": "AGENTS.md",
       "line": 15,
       "section": "Salus agent execution requirements",
-      "text_sha256": "baa57641232bf69ac4d24b218f30eff8cacce4e18ee493b0a0c60f6e252c7014",
+      "text_sha256": "5f25f5c9734f4b46d4263e74272746f3fe2a0f2ef026cd03104f29fe9a7eab10",
       "decision_ids": [
         "SAL-D139"
+      ]
+    },
+    {
+      "id": "REQ-dc34b4bba9878a178a76a251",
+      "source": "AGENTS.md",
+      "line": 17,
+      "section": "Salus agent execution requirements",
+      "text_sha256": "cafb7d768d08f28245abf37de22d187515e7763001afb87555ce55209a554b90",
+      "decision_ids": [
+        "SAL-D142",
+        "SAL-D143"
       ]
     },
     {
@@ -218,11 +229,11 @@
       ]
     },
     {
-      "id": "REQ-f54aa7b015c6f5ad1bff6d44",
+      "id": "REQ-113925a68e2a08f9a5379d97",
       "source": "APPROVED_ARTIFACTS.md",
       "line": 10,
       "section": "Salus Solutions — Approved Artifact Register",
-      "text_sha256": "8e8521136db80ea4b7c0ca5a7e6e58cf2c6ed91a029f5840dee51124f7abdff6",
+      "text_sha256": "13586122242b8a1d28a3ba68a849c563c932b7c015960c5d9936926b0ecafdd5",
       "decision_ids": [
         "SAL-D139"
       ]
@@ -979,9 +990,20 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-179452ab89ee2deb460acfdb",
+      "id": "REQ-f2de3ed85dcadeee3726da99",
       "source": "APPROVED_ARTIFACTS.md",
       "line": 112,
+      "section": "Salus Solutions — Approved Artifact Register / Assessment report editorial authority [SAL-D136]",
+      "text_sha256": "2e543ea74e7ec9e8ceeb3dbb35129f80af3f70b881ea63f17c7a20af3b32be27",
+      "decision_ids": [
+        "SAL-D142",
+        "SAL-D143"
+      ]
+    },
+    {
+      "id": "REQ-179452ab89ee2deb460acfdb",
+      "source": "APPROVED_ARTIFACTS.md",
+      "line": 113,
       "section": "Salus Solutions — Approved Artifact Register / Assessment report editorial authority [SAL-D136]",
       "text_sha256": "1fd4824773f495b547bf9abf742fea392a6217840f21a89a970d3f8d4126f991",
       "decision_ids": []
@@ -989,7 +1011,7 @@
     {
       "id": "REQ-2d50494ba41f1d6e7046d631",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 115,
+      "line": 116,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "0c17e1658aca25a07818ab6cd809d28d4bdc3fd864eaa47d4f7dfb310e602fc3",
       "decision_ids": [
@@ -999,7 +1021,7 @@
     {
       "id": "REQ-007acd52883a8dcfc7848840",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 117,
+      "line": 118,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "79b216264f9b7f52b7094b3bba994ba9010d6fd5c59a6621430b22a0e614853f",
       "decision_ids": []
@@ -1007,7 +1029,7 @@
     {
       "id": "REQ-5538b9fc4e432ca983e451d2",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 118,
+      "line": 119,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "23cca02b74f386463efa24796c7a9011b0d2c93f0c38b4d15d5d276205b59b43",
       "decision_ids": []
@@ -1015,7 +1037,7 @@
     {
       "id": "REQ-de6055fe595dce96accf4c9c",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 119,
+      "line": 120,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "bf7b7348e59e2b9cd0edb5976fed5590f425923523b6bae83542da41f6fc0f14",
       "decision_ids": [
@@ -1025,7 +1047,7 @@
     {
       "id": "REQ-476c46b8c6509959020420b2",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 120,
+      "line": 121,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "e355c5e5bd4ebed4810bf717023890580f480df38dc2b97c6922bc0ffa396689",
       "decision_ids": [
@@ -1035,7 +1057,7 @@
     {
       "id": "REQ-ca2c798bbfe155641195c84e",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 121,
+      "line": 122,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "54e0bcb2af569eb0cb6486ff640e6790f23b59551e3196f44cfe5d40ec884058",
       "decision_ids": []
@@ -1043,7 +1065,7 @@
     {
       "id": "REQ-ba6a849afec8944477cfdcd9",
       "source": "APPROVED_ARTIFACTS.md",
-      "line": 122,
+      "line": 123,
       "section": "Salus Solutions — Approved Artifact Register / Current Knowledge Library recovery-planning baseline [SAL-D137]",
       "text_sha256": "b92faf8563462a330224325732de8af8a11efb4acedb63650128676c8e3d378b",
       "decision_ids": []
@@ -1432,6 +1454,64 @@
       "line": 76,
       "section": "Salus analytical assumptions-to-action standard / Quality and release gate",
       "text_sha256": "b849a6009280d78048b4820666c387d408d4a7e93dbc7075259555320ad90e7c",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-e5ed4643ca4777ff8e5dd800",
+      "source": "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md",
+      "line": 79,
+      "section": "Salus analytical assumptions-to-action standard / Universal analytical review for every task [SAL-D143]",
+      "text_sha256": "28d495c27039a8741c28bcc13b48bae56c78cb349e99c4aca8d09022c74e2a66",
+      "decision_ids": [
+        "SAL-D143"
+      ]
+    },
+    {
+      "id": "REQ-04c3fcf98df57358aec9f865",
+      "source": "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md",
+      "line": 81,
+      "section": "Salus analytical assumptions-to-action standard / Universal analytical review for every task [SAL-D143]",
+      "text_sha256": "09572ca241108652d14ff25b8a485275813849d3a931111fb524d2846e37676b",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c16814369e4a858106c6de7b",
+      "source": "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md",
+      "line": 83,
+      "section": "Salus analytical assumptions-to-action standard / Universal analytical review for every task [SAL-D143]",
+      "text_sha256": "8386e8f78436efb63da53a21fba33da1b2359b2288c5adb78ed9db7582f08624",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9d9a723e0886f82de8e869ad",
+      "source": "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md",
+      "line": 84,
+      "section": "Salus analytical assumptions-to-action standard / Universal analytical review for every task [SAL-D143]",
+      "text_sha256": "1bc512792fbf17b9a3bd2d0fd8351ce7637d492aa3ca758a36d3fa65504f9fa7",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4539bcf5912750a30775d072",
+      "source": "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md",
+      "line": 85,
+      "section": "Salus analytical assumptions-to-action standard / Universal analytical review for every task [SAL-D143]",
+      "text_sha256": "cb6718cfb7d8c41c552ce0ccd7d3539393a3d7243ede640df672c9c596a71e39",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-cc22c5c99d57a8a65cae3159",
+      "source": "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md",
+      "line": 86,
+      "section": "Salus analytical assumptions-to-action standard / Universal analytical review for every task [SAL-D143]",
+      "text_sha256": "ae4c5c038cf24251ef1d8bbcdf09dae0bf37446a9e0ab3eb4ef109eaf56b8b64",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-22f21e21192fd7b9a6793ee6",
+      "source": "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md",
+      "line": 88,
+      "section": "Salus analytical assumptions-to-action standard / Universal analytical review for every task [SAL-D143]",
+      "text_sha256": "23c65c0eff98364969bd14c5cb66c6c394b3378e235d467c26ace1191a915058",
       "decision_ids": []
     },
     {
@@ -3180,11 +3260,30 @@
       ]
     },
     {
-      "id": "REQ-989606ae5edfc2171bff8085",
+      "id": "REQ-59bba29b7fa78acfe12b5b62",
       "source": "SALUS_CHAT_STARTUP_PROTOCOL.md",
       "line": 227,
       "section": "SAL-D056 spatial-source startup check / Required model-switch reminder on every task [SAL-D139]",
-      "text_sha256": "4600fcdcbcb2174a6e81ca3061b7dd25cc8c31129fbaab467adc4888b7995247",
+      "text_sha256": "6d97eab72a6ea9870eae79e539c671f5cf92d6da16589f75b73c67004bb0a841",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-cb71aca87d209a2e9b668476",
+      "source": "SALUS_CHAT_STARTUP_PROTOCOL.md",
+      "line": 230,
+      "section": "SAL-D056 spatial-source startup check / Universal analytical preflight and closeout [SAL-D142–SAL-D143]",
+      "text_sha256": "13117487394a87cddd9fcd438eba173483eb541564f9fcc8d4e43e414f3d619c",
+      "decision_ids": [
+        "SAL-D142",
+        "SAL-D143"
+      ]
+    },
+    {
+      "id": "REQ-84f2f8b40d3a341af91dbb8e",
+      "source": "SALUS_CHAT_STARTUP_PROTOCOL.md",
+      "line": 232,
+      "section": "SAL-D056 spatial-source startup check / Universal analytical preflight and closeout [SAL-D142–SAL-D143]",
+      "text_sha256": "33f0dd1381862cc247157b2345b0b3d2ea26dca36bb47e5c8836909b521a768f",
       "decision_ids": []
     },
     {
@@ -5275,6 +5374,44 @@
       "line": 261,
       "section": "Salus Solutions — Decision Register / SALUS-DOC-HEADING-SPACING-001 — Mandatory heading spacing in all Salus documents",
       "text_sha256": "2647254a19772319c4dea4c3200c20318e6ca3566ede7cdcccd29c07871bb537",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-04995e3ea9d6ef0871222493",
+      "source": "SALUS_DECISION_REGISTER.md",
+      "line": 264,
+      "section": "Salus Solutions — Decision Register / SAL-D142 — Assessment reminder updated to GPT-6.2 Astra",
+      "text_sha256": "b8a0ab246726b52060154478fa40b976aa043d0a084213f97910976ec579df17",
+      "decision_ids": [
+        "SAL-D142"
+      ]
+    },
+    {
+      "id": "REQ-ecab03a11936ef506d09f58b",
+      "source": "SALUS_DECISION_REGISTER.md",
+      "line": 266,
+      "section": "Salus Solutions — Decision Register / SAL-D142 — Assessment reminder updated to GPT-6.2 Astra",
+      "text_sha256": "09d9feed7dd7fe66d6643414736686d49ca95a74776df5490102681187f4bee6",
+      "decision_ids": [
+        "SAL-D139"
+      ]
+    },
+    {
+      "id": "REQ-1b5ecbeca7f2e4d5e38e6377",
+      "source": "SALUS_DECISION_REGISTER.md",
+      "line": 268,
+      "section": "Salus Solutions — Decision Register / SAL-D143 — Four analytical duties for every task",
+      "text_sha256": "30f733c503f239ed540d480b75fa20c4e38c7621062bd38eac38ebe3027801b4",
+      "decision_ids": [
+        "SAL-D143"
+      ]
+    },
+    {
+      "id": "REQ-98797abc8c184e6f23de5e7b",
+      "source": "SALUS_DECISION_REGISTER.md",
+      "line": 270,
+      "section": "Salus Solutions — Decision Register / SAL-D143 — Four analytical duties for every task",
+      "text_sha256": "5817f719d6fd3fa4ff1644bf70d3f81e494c5ed82bea7fa7da891f1be7d8dbc5",
       "decision_ids": []
     },
     {
@@ -17439,11 +17576,11 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-ca7f59b5189c7eca8f05b74a",
+      "id": "REQ-518341681fd2ff9f3d93c46e",
       "source": "SALUS_PROGRAM_CHARTER.md",
       "line": 1061,
       "section": "Salus Solutions — Master Program Charter / Model-switch reminder before every task [SAL-D139]",
-      "text_sha256": "b671c46155bcece09cebcad359c7338079b1ac219969cfdfc75da876bc5ae549",
+      "text_sha256": "bb0c0310034b11b963ddc53373f0326ae29b9f6be7b2535252bb5504d56dc488",
       "decision_ids": []
     },
     {
@@ -17510,6 +17647,92 @@
       "line": 1076,
       "section": "Salus Solutions — Master Program Charter / Automatic merge of governed OSINT lists [SAL-D140]",
       "text_sha256": "d16793a1c96bae0241314fc427da30409cfb72a1b73495b09f69bed8b308eab7",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-102ebe8dd597411963bd98ef",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1079,
+      "section": "Salus Solutions — Master Program Charter / Assessment-model reminder revision [SAL-D142]",
+      "text_sha256": "e91f19bf12bbdea6997a6e3ab3a73719f2575169d0c915e90074e444fc504a49",
+      "decision_ids": [
+        "SAL-D142"
+      ]
+    },
+    {
+      "id": "REQ-f7574c755c86b515d2882e7a",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1081,
+      "section": "Salus Solutions — Master Program Charter / Assessment-model reminder revision [SAL-D142]",
+      "text_sha256": "b2b3533c6956a9a6faadb076b4ae36280853fb037c15684158cb0fc6b6db8abe",
+      "decision_ids": [
+        "SAL-D139"
+      ]
+    },
+    {
+      "id": "REQ-9e715874d73aa916ebcd02a8",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1083,
+      "section": "Salus Solutions — Master Program Charter / Universal analytical duties for every task [SAL-D143]",
+      "text_sha256": "b7261283f84e1a13f9a6ef8b968b45926aedbe635298645736a269433b078406",
+      "decision_ids": [
+        "SAL-D143"
+      ]
+    },
+    {
+      "id": "REQ-f9ecf43610ec8ecd312f88b0",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1085,
+      "section": "Salus Solutions — Master Program Charter / Universal analytical duties for every task [SAL-D143]",
+      "text_sha256": "c2d2f878b8e561dc464a49fcc6a4c6db4d3e1721b55f81e1bd5fb79f9dae914e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6d20be0a7cb34ad9a91447de",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1087,
+      "section": "Salus Solutions — Master Program Charter / Universal analytical duties for every task [SAL-D143]",
+      "text_sha256": "6384c84d550a5caf193e59251adec356525955c242c262d3b327af92cf548b20",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d65ec86427577f40f38fbc8a",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1088,
+      "section": "Salus Solutions — Master Program Charter / Universal analytical duties for every task [SAL-D143]",
+      "text_sha256": "2f746543baa874c7b3badb02e05f279121f84e14b6741af67ea8da8f88f1d6e6",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d28f0f5192c76a33254c37c5",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1089,
+      "section": "Salus Solutions — Master Program Charter / Universal analytical duties for every task [SAL-D143]",
+      "text_sha256": "585c66854f09f7dda0f3b4dc3a08d770f7745ed3039240553f5cf55b7c5fe7af",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6a404b60ed70032c54c60e2d",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1090,
+      "section": "Salus Solutions — Master Program Charter / Universal analytical duties for every task [SAL-D143]",
+      "text_sha256": "5129bddf8c57e930bc152e5adf3b3c9b8d6e62c1592eae810e8d0d4e94db95dd",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-b6185020455a5e1c9ad7aec2",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1092,
+      "section": "Salus Solutions — Master Program Charter / Universal analytical duties for every task [SAL-D143]",
+      "text_sha256": "bf3026c4a1e65ee36823d8a946d0d1a3488120273331c3ce5548829d0714e556",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-e88b1f45b6efb4cd9e340719",
+      "source": "SALUS_PROGRAM_CHARTER.md",
+      "line": 1094,
+      "section": "Salus Solutions — Master Program Charter / Universal analytical duties for every task [SAL-D143]",
+      "text_sha256": "8b1c8b4826b1e89f15f7893001fd42a9bc462a0ae5e7c732fca88702d6adcc9c",
       "decision_ids": []
     },
     {
@@ -21614,11 +21837,11 @@
       ]
     },
     {
-      "id": "REQ-e32ba466bac75fb487042695",
+      "id": "REQ-4ce1bcc80a1e8cd48f572efa",
       "source": "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md",
       "line": 72,
       "section": "Salus Task Compliance and Assurance Standard / Every-task model-switch reminder [SAL-D139]",
-      "text_sha256": "1b108f7fbcf1c752c8e0b85a4809d9a3ec2815f4e9a7ca05fc4dc37c6fdffd73",
+      "text_sha256": "43db351d3fc06247b189fa011b5e9a52872bc81ee0b3a7360340cf4a3bd06727",
       "decision_ids": []
     },
     {
@@ -21628,6 +21851,34 @@
       "section": "Salus Task Compliance and Assurance Standard / Every-task model-switch reminder [SAL-D139]",
       "text_sha256": "0ef1df46e8fe2b094c7d8164b82e7fe11f472753a0f75c274bf6078e62f65fb6",
       "decision_ids": []
+    },
+    {
+      "id": "REQ-a3da8d528d27c31763fae6e8",
+      "source": "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md",
+      "line": 77,
+      "section": "Salus Task Compliance and Assurance Standard / Four analytical review records on every task [SAL-D143]",
+      "text_sha256": "15bc4a86e4537fc58b1d0886fdaa2dba306715db45f0ef300c178c658ad9dec6",
+      "decision_ids": [
+        "SAL-D143"
+      ]
+    },
+    {
+      "id": "REQ-2983f927780b86388cbc5ec4",
+      "source": "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md",
+      "line": 79,
+      "section": "Salus Task Compliance and Assurance Standard / Four analytical review records on every task [SAL-D143]",
+      "text_sha256": "a19a5dd373941d2244c0ce2165895c039fb86a636b2685ce297bcf167a78cb65",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-85bfde8930200b629e4f4214",
+      "source": "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md",
+      "line": 81,
+      "section": "Salus Task Compliance and Assurance Standard / Four analytical review records on every task [SAL-D143]",
+      "text_sha256": "2b6f63dc7e957c846c4d70703c48447605b715dc6cbb369346dfef133cec32d5",
+      "decision_ids": [
+        "SAL-D142"
+      ]
     },
     {
       "id": "REQ-2551e4f013c3b2050e9da1f5",
@@ -25176,11 +25427,11 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-09737a4bcbedfb756716ad59",
+      "id": "REQ-da0a4cb343f3711d8af12489",
       "source": "docs/charter-task-compliance.md",
       "line": 128,
       "section": "Every-task compliance assurance runbook / Model reminders on every task [SAL-D139]",
-      "text_sha256": "446715e1c406229d59ff686f27cd83a5c90ce41996f0fa74868e47db5bc6e687",
+      "text_sha256": "df24a4863a12da43ed10c6ba2fc8f0e83e31e2ec6e7bc5b111e43ef15de2fcef",
       "decision_ids": []
     },
     {
@@ -25190,6 +25441,34 @@
       "section": "Every-task compliance assurance runbook / Model reminders on every task [SAL-D139]",
       "text_sha256": "0ef1df46e8fe2b094c7d8164b82e7fe11f472753a0f75c274bf6078e62f65fb6",
       "decision_ids": []
+    },
+    {
+      "id": "REQ-e2d6902706b181eaaf78af72",
+      "source": "docs/charter-task-compliance.md",
+      "line": 133,
+      "section": "Every-task compliance assurance runbook / Every-task analytical assurance [SAL-D143]",
+      "text_sha256": "bd4de40cc29464671e2c883a6282f37ede16e206da66658badda5436c35bebee",
+      "decision_ids": [
+        "SAL-D143"
+      ]
+    },
+    {
+      "id": "REQ-1e424719052b8486b9221f4b",
+      "source": "docs/charter-task-compliance.md",
+      "line": 135,
+      "section": "Every-task compliance assurance runbook / Every-task analytical assurance [SAL-D143]",
+      "text_sha256": "3183da78e02ed0c829ea0f4e679c65a1be0a47fc864f70365b31db9d13639afd",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-58915b69ae40f615ae14b9c7",
+      "source": "docs/charter-task-compliance.md",
+      "line": 137,
+      "section": "Every-task compliance assurance runbook / Every-task analytical assurance [SAL-D143]",
+      "text_sha256": "9b3fe637cc6944035712b93cdf7f0c021100e8f3ede18709831615dcc0211f65",
+      "decision_ids": [
+        "SAL-D142"
+      ]
     },
     {
       "id": "REQ-09e9183b65b435ef5c5eb165",
@@ -31076,10 +31355,12 @@
         "SALUS_DECISION_REGISTER.md",
         "APPROVED_ARTIFACTS.md",
         "SALUS_CHAT_STARTUP_PROTOCOL.md",
+        "SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md",
         "SALUS_SALCAPA_INTEGRATED_REPORT_STANDARD.md",
         "SALUS_SALINTEL_SALTHIRA_METHOD_STANDARD.md",
         "SALUS_SALOPS_METHOD_REPORT_STANDARD.md",
-        "SALUS_THREE_LEVEL_SERVICE_FRAMEWORK.md"
+        "SALUS_THREE_LEVEL_SERVICE_FRAMEWORK.md",
+        "docs/charter-task-compliance.md"
       ],
       "state": "indexed"
     },
@@ -31362,6 +31643,7 @@
         "APPROVED_ARTIFACTS.md",
         "SALUS_CHAT_STARTUP_PROTOCOL.md",
         "AGENTS.md",
+        "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md",
         "SALUS_ENTERPRISE_DECISION_TO_PROOF_OPERATING_STANDARD.md",
         "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md",
         "docs/charter-task-compliance.md"
@@ -31499,5 +31781,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "98975b093634acb019c4d4b39be5d4c09c306b1e2e2899f924644c9440862e7a"
+  "register_sha256": "1c2231cbc9408d0133d5ffe979c64ce1395a1fa4568d498fb8063494f1474476"
 }
