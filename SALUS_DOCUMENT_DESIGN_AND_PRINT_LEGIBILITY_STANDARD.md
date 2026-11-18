@@ -25,6 +25,10 @@ The 36-point separation is a minimum, not a target that prevents additional whit
 - Preserve the approved Salus typography: Arial for titles, headings, page headers and footers; Times New Roman for body text. Footer text, including the normal-weight words “Salus Solutions,” telephone number, contact email and page numbering, must be Arial, at least 10 points, kept on the approved shared baseline and not wrapped mid-name.
 - Do not evade these requirements through font scaling, condensed character spacing, image-based text, reduced print scaling or automatic “fit text” behavior.
 
+## Heading paragraph spacing
+
+Heading 1 (level 1): **12 pt before and 12 pt after**. Heading 2 (level 2): **12 pt before and 6 pt after**. This is mandatory under SALUS-DOC-HEADING-SPACING-001 for all new or materially revised documents and templates. Apply shared styles and effective paragraph overrides consistently; remove automatic/contextual spacing overrides. Verify exact DOCX files with `tools/verify_salus_document_heading_spacing.py` and inspect every rendered page. Preserve issued predecessors and customer originals.
+
 ## Layout adjustments
 
 Accommodate the larger type by increasing page count, table row height, cell padding, column width, paragraph spacing, header/footer distance, or section layout as necessary. Repeat table header rows across pages, keep words intact rather than wrapping them mid-word, and split or reorient complex tables when needed. Adjust header and footer spacing so their text remains clear of body content and printer nonprintable areas. Do not reduce margins or crowd page furniture merely to preserve a prior page count.

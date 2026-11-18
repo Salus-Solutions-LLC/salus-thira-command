@@ -167,7 +167,7 @@ def _professional_body(document, fields, result, package) -> None:
     normal.space_before = Pt(0)
     normal.space_after = Pt(8)
     normal.line_spacing = 1.18
-    for style_name, before, after in (("Heading 1", 15, 7), ("Heading 2", 11, 5)):
+    for style_name, before, after in (("Heading 1", 12, 12), ("Heading 2", 12, 6)):
         heading_style = document.styles[style_name]
         heading_style.paragraph_format.keep_with_next = True
         heading_style.paragraph_format.space_before = Pt(before)
@@ -745,6 +745,8 @@ def render_protection_advisor_docx(
     _describe_report_graphics(document)
 
     destination.parent.mkdir(parents=True, exist_ok=True)
+    from salus_document_styles import apply_heading_spacing
+    apply_heading_spacing(document)
     document.save(str(destination))
     return destination
 
@@ -793,8 +795,8 @@ def render_protection_advisor_pdf(
     watermark = "CONFIDENTIAL"
     styles = getSampleStyleSheet()
     body = ParagraphStyle("SalusBody", parent=styles["BodyText"], fontName="SalusBody", fontSize=11.5, leading=16, spaceAfter=9)
-    h1 = ParagraphStyle("SalusH1", parent=styles["Heading1"], fontName="SalusHeader-Bold", fontSize=17, leading=21, textColor=colors.HexColor("#17365D"), spaceBefore=16, spaceAfter=9, keepWithNext=1)
-    h2 = ParagraphStyle("SalusH2", parent=styles["Heading2"], fontName="SalusHeader-Bold", fontSize=12, leading=16, textColor=colors.HexColor("#17365D"), spaceBefore=11, spaceAfter=6, keepWithNext=1)
+    h1 = ParagraphStyle("SalusH1", parent=styles["Heading1"], fontName="SalusHeader-Bold", fontSize=17, leading=21, textColor=colors.HexColor("#17365D"), spaceBefore=12, spaceAfter=12, keepWithNext=1)
+    h2 = ParagraphStyle("SalusH2", parent=styles["Heading2"], fontName="SalusHeader-Bold", fontSize=12, leading=16, textColor=colors.HexColor("#17365D"), spaceBefore=12, spaceAfter=6, keepWithNext=1)
     title = ParagraphStyle("SalusTitle", parent=styles["Title"], fontName="SalusHeader-Bold", fontSize=22, leading=26, alignment=TA_CENTER, textColor=colors.black)
     subtitle = ParagraphStyle("SalusSubtitle", parent=body, fontSize=11, leading=14, alignment=TA_CENTER, textColor=colors.HexColor("#2F75B5"))
     small = ParagraphStyle("SalusSmall", parent=body, fontSize=10, leading=13, spaceAfter=0)
@@ -1142,6 +1144,8 @@ def render_scope_receipt_docx(
         run.font.size = Pt(8)
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
+    from salus_document_styles import apply_heading_spacing
+    apply_heading_spacing(document)
     document.save(str(destination))
     return destination
 

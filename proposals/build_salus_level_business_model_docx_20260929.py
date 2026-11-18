@@ -125,7 +125,7 @@ def clear_theme_font(style):
 
 
 clear_theme_font(normal)
-for name, size, before, after in [("Title", 22, 0, 12), ("Heading 1", 15, 14, 7), ("Heading 2", 12.5, 10, 5)]:
+for name, size, before, after in [("Title", 22, 0, 12), ("Heading 1", 15, 12, 12), ("Heading 2", 12.5, 12, 6)]:
     st = styles[name]
     st.font.name = "Arial"
     st.font.size = Pt(size)
@@ -289,5 +289,9 @@ while i < len(lines):
 doc.core_properties.title = "Salus Sequential Package Business Model Decision Candidate"
 doc.core_properties.subject = "Level 1 Level 2 Level 3 scope intake pricing and revenue model"
 doc.core_properties.author = "Salus Solutions"
+import sys
+sys.path.insert(0, str(HERE.parent))
+from salus_document_styles import apply_heading_spacing
+apply_heading_spacing(doc)
 doc.save(OUTPUT)
 print(OUTPUT)

@@ -31,6 +31,8 @@ with TemporaryDirectory() as directory:
         output_path=Path(directory) / "receipt.docx", context=context, receipt=receipt,
     )
     document = Document(str(output))
+    from salus_document_styles import heading_spacing_findings
+    assert not heading_spacing_findings(document), "Generated scope receipt heading spacing drift"
     text = "\n".join(p.text for p in document.paragraphs)
     assert "Confidential scope receipt" in text
     assert "This receipt is a preparation aid" in text
