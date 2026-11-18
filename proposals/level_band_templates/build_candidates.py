@@ -149,6 +149,14 @@ def build() -> None:
             for name in original.namelist():
                 if name not in ("docProps/core.xml", "word/document.xml", "word/styles.xml"):
                     assert sha256(original.read(name)).digest() == sha256(candidate.read(name)).digest(), (product, name)
+        # Preserve the source; apply the enterprise spacing rule to this successor.
+        import sys
+        sys.path.insert(0, str(HERE.parents[1]))
+        from docx import Document
+        from salus_document_styles import apply_heading_spacing
+        controlled = Document(target)
+        apply_heading_spacing(controlled)
+        controlled.save(target)
         print(product, target, sha256(target.read_bytes()).hexdigest().upper())
 
 

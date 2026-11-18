@@ -36,6 +36,8 @@ with TemporaryDirectory() as tmp:
     )
 
     rendered = Document(output)
+    from salus_document_styles import heading_spacing_findings
+    assert not heading_spacing_findings(rendered), "Generated report heading spacing drift"
     cover_graphics = list(rendered.element.iter(qn("wp:docPr")))
     assert len(cover_graphics) == 3
     assert all(graphic.get("descr") for graphic in cover_graphics)

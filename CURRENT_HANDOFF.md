@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 17 November 2026 — All-document heading-spacing amendment
+
+Marc explicitly approved merging SALUS-DOC-HEADING-SPACING-001 and applying Heading 1 12 pt before/12 pt after and Heading 2 12 pt before/6 pt after to all Salus documents. This candidate updates the Charter, decision record, design standard, startup, maintained Word generators, shared style helper and exact-file verifier. Exact twelve-topic white paper v1.5 was native-Word rendered to 54 pages; all 96 used headings passed spacing checks. Active or historic cloud templates and issued documents require controlled successors before reuse; no wholesale migration or deployment is claimed. The white paper's complete corpus/source-qualification and full task-assurance evidence remain incomplete. Preserve Compass pause, disabled reader and all Library/recovery holds. No new operations, publication or source processing authorized. Merge status and exact checks must be read back after promotion.
+
+
 ## 16 November 2026 16:13 CST — Six outside-cohort source bindings recovered, independently validated and retained; no baseline or processing adopted
 
 **Approved execution and exact result:** Marc approved PR #1292 exact head `03186298ab79813f023efbdf3115fa6a68039d4a` for merge and one schema-aware historical recovery with preservation, independent verification, cleanup and handoff. It merged as `575a718ccdde653e864a41312c00e3384d9a787c`. All twelve candidate checks passed, including twenty reader tests; all eight files matched independent readback and merge blob equality. [Run 43967758804](https://github.com/Salus-Solutions-LLC/salus-thira-command/actions/runs/43967758804), attempt 1, approval job 133651569771 / recovery job 133651633051, **succeeded**. All thirteen merge checks passed; one PR-only validate job skipped. No diagnostic or recovery workflow rerun was requested.

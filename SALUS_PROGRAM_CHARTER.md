@@ -1,5 +1,14 @@
 # Salus Solutions — Master Program Charter
 
+
+## Mandatory heading spacing for all Salus documents [SALUS-DOC-HEADING-SPACING-001]
+
+Approved by Marc Duncan on 17 November 2026, including explicit direction to merge and apply across all Salus documents. Heading 1 (level 1): **12 pt before and 12 pt after**. Heading 2 (level 2): **12 pt before and 6 pt after**. Apply these exact paragraph values to all new and materially revised Salus-authored documents and reusable templates, including white papers, reports, proposals, agreements, plans, forms, briefings and internal documents wherever these heading levels occur. Apply equivalent paragraph spacing in non-Word formats; a format without these heading levels records nonapplicability. Titles, subtitles, page headers and footers are separate elements. Shared styles and any direct paragraph overrides must agree; remove automatic/contextual spacing overrides, and do not substitute blank paragraphs for the required spacing.
+
+Use `salus_document_styles.py` for maintained Word generators and `tools/verify_salus_document_heading_spacing.py` to check the exact DOCX before issue. Check custom styles based on Heading 1/2, explicit outline levels, tables and other document stories; style-only checks are insufficient. Verify every rendered page after changes under the existing accessibility and exact-file rules. This spacing rule supersedes conflicting earlier Heading 1/2 spacing only; preserve the remaining font, branding, size, cover, header/footer and content requirements.
+
+Existing issued documents and customer originals remain intact. Register active drafts and templates for controlled successors before next use; retain predecessor hashes and exact-file checks. Historic generators are not proof of current approval. A merged policy or software check does not prove all distributed documents, cloud templates, PDF variants or deployed workflows have been migrated. Maintain explicit pending/blocked dispositions where an original or authorized delivery path is unavailable. No assessment, Library recovery, Compass reader, deployment or publication is authorized by this amendment.
+
 ## Purpose
 
 Salus Solutions LLC is an intelligence, security, investigations, emergency-management, and operational-support company. The Salus program turns fragmented information into qualified intelligence, prioritized risk decisions, coordinated actions, and defensible records for Protected Members.

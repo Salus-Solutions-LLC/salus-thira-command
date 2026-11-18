@@ -6,6 +6,10 @@ Paste this into any new Salus chat when needed:
 
 > Continue the Salus Solutions Master Program. Before changing anything, read the Project Instructions and the authoritative records: `SALUS_PROGRAM_CHARTER.md`, `SALUS_DECISION_REGISTER.md`, `CURRENT_HANDOFF.md`, `APPROVED_ARTIFACTS.md`, and `SALUS_CHAT_STARTUP_PROTOCOL.md`. For technical work, inspect the authoritative GitHub repository `Salus-Solutions-LLC/salus-thira-command` and the relevant approved artifacts. GitHub is authoritative for code; approved artifacts are authoritative for design and deliverable intent. Do not reconstruct requirements from assumptions or redesign approved work. First report the current objective, records inspected, deployed state, completed work, open defects, acceptance criteria, exact next action, and any required authorization. Then continue the unfinished work and update the handoff before stopping.
 
+## Mandatory heading-spacing check
+
+For all new and materially revised Salus documents and templates, apply SALUS-DOC-HEADING-SPACING-001: Heading 1 12 pt before/12 pt after; Heading 2 12 pt before/6 pt after. Check effective styles and direct overrides in the exact output, then rerender and inspect all pages. Use the shared Word helper and verifier; record unavailable active originals and pending controlled successors. Do not claim historic or distributed artifacts were migrated without exact-file evidence.
+
 ## Mandatory startup checklist
 
 Before modifying anything, the chat must:
