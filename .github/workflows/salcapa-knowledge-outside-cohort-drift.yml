@@ -34,7 +34,7 @@ on:
       - 'deploy/azure/activations/knowledge-outside-cohort-drift-20261116.json'
 
 concurrency:
-  group: salcapa-knowledge-diagnostic
+  group: ${{ github.event_name == 'pull_request' && format('salcapa-knowledge-validation-{0}-{1}', github.workflow, github.ref) || 'salcapa-knowledge-diagnostic' }}
   cancel-in-progress: false
 
 permissions:
