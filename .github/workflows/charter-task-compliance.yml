@@ -20,8 +20,10 @@ jobs:
         run: python tools/ci_charter_task_compliance.py
       - name: Verify positive and adverse control behavior
         run: python -m unittest discover -s tests -p test_charter_task_compliance.py -v
-      - name: Install Word heading-check dependency
-        run: pip install python-docx==1.2.0
+      - name: Install document inspection dependencies
+        run: pip install python-docx==1.2.0 pypdf==6.21.4
+      - name: Verify research entry and fail-closed assessment cases
+        run: python -m unittest discover -s tools -p test_assessment_research_entry.py -v
       - name: Verify heading spacing and adverse override detection
         run: python -m unittest discover -s tests -p test_salus_document_styles.py -v
 
