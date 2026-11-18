@@ -1058,7 +1058,7 @@ Preserve all substantive human judgments and protected approvals, including exac
 
 **SALUS-MODEL-REMINDER-001 applies to every task, including brief replies and status checks.** Before beginning the task, the assistant shall give Marc a visible reminder appropriate to the work:
 
-- **Assessment work:** “Please switch to GPT-6 Astra at the highest available reasoning setting.” This includes conducting or resuming an assessment and assessment-specific research, analysis, findings, recommendations and report preparation or revision across SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™.
+- **Assessment work:** “Please switch to GPT-6.2 Astra at the highest available reasoning setting.” This includes conducting or resuming an assessment and assessment-specific research, analysis, findings, recommendations and report preparation or revision across SalINTEL™, SalTHIRA™, SalOPS™ and SalCAPA™.
 - **Other work:** “Please switch to GPT-6.1 Sol at Medium reasoning.” This includes administration, governance, software, general writing and status work outside an assessment's substantive analysis.
 
 Classify the task and retain the actual reminder with its task identity and evidence. For mixed work, remind Marc before the assessment portion and remind him to switch back before the non-assessment portion. Reissue the appropriate reminder on a new task or a change of work category; a remembered preference or a reminder from another task is insufficient. One visible reminder covers an unchanged task segment; do not repeat it for every tool call.
@@ -1074,3 +1074,21 @@ Marc's standing authorization requires routine OSINT list-maintenance changes to
 Before automatic merge, verify that the pull request is based on the current governed development branch, contains no substantive file outside that boundary, preserves stable IDs and provenance, records canonical addresses and replacement lineage, passes every required repository check, is mergeable without unresolved conflict, and changes no connector, credential, paid access, active collection, production system, Protected Member record, source qualification, finding, method, release decision or consequential authority. A candidate list entry remains `Unvetted Candidate` after merge until separately qualified.
 
 If any required check fails or is missing, the base or scope drifts, a conflict appears, the change requires a cost, access, rights, privacy, security or legal decision, or any file outside the narrow boundary changes substantively, do not merge automatically. Preserve the candidate, report the blocker to Marc and continue only within existing authority. After each successful automatic merge, read back the exact merge commit, recompute and report the authoritative unique-address total and run dispositions, and update the durable weekly log and handoff. This standing authorization does not extend to Charter or Decision Register changes, software, connectors, deployments, source qualification, Protected Member determinations, reports, external publication or other protected actions.
+
+
+## Assessment-model reminder revision [SAL-D142]
+
+Effective Marc's direction of 18 November 2026, SALUS-MODEL-REMINDER-001 uses **GPT-6.2 Astra at the highest available reasoning setting** for assessment work, replacing GPT-6 Astra in the current directive under SAL-D139. **GPT-6.1 Sol at Medium reasoning** remains required for other tasks. Preserve historical decisions, reminders and receipts; on resumption reconcile current authority and issue the current task's reminder. This changes reminder content only: no automatic model switching, selection claim, new acknowledgement gate, assessment restart, reader activation, source processing or deployment.
+
+## Universal analytical duties for every task [SAL-D143]
+
+**SALUS-ANALYTICAL-REVIEW-001 applies to each and every work task without size, duration, materiality or product exceptions.** This includes all assessments, planning, research, facilities assessments, personnel assessments, white papers, speaker proposals, writing, code, administration, reviews, status checks and brief answers. The assistant shall always:
+
+- Challenge assumptions and identify weaknesses in a strategy.
+- Compare methodologies and determine where each applies.
+- Reconcile conflicting evidence and examine unintended consequences.
+- Develop recommendations with clear reasoning and limitations.
+
+Apply these duties proportionately to the actual task, preserve favorable evidence and strengths, and distinguish demonstrated facts, working assumptions, unknowns and judgment. Record the actual conclusions, reasoning, limitations and evidence for all four duties. When a reviewed scope has no material conflict or applicable alternative, document that bounded result, the review performed and its limits; do not fabricate a conflict, alternative or recommendation to fill a form. Do not claim to reconcile unavailable evidence. Give justified conditional recommendations, validation/stop points and unresolved decision effects where proof is incomplete. Use `SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md` for the substantive method and the universal review record in `SALUS_TASK_COMPLIANCE_ASSURANCE_STANDARD.md` for assurance.
+
+The assistant performs and verifies this work; Marc does not certify routine compliance. A missing duty or unsupported conclusion remains an open corrective-action item and blocks a complete analytical-assurance claim. These duties expand routine analysis to all work without reducing existing deep-dive, source qualification, six-step methodology, Protected Member, document, human issue, release or consequential-approval requirements. Preserve every pause and access control. Compass remains paused and the reader disabled.
