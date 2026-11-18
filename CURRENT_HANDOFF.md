@@ -1,5 +1,14 @@
 # Salus Solutions — Current Handoff
 
+## 18 November 2026 — Proposed one-time coordination evidence search
+
+A draft change proposes four fixed, member-neutral queries for responder handoffs, public warnings, family reunification and recovery. The existing staff search route returned Not Found at the signed-in v3.223 workspace. The prior task workflow and generic release readback carry different fixed queries. Their receipts cannot establish coverage for this work. Eleven existing local census and receipt tests and a four-query synthetic receipt check passed. Repository validation and the Bicep build are pending.
+
+The proposed search would use the previously published immutable v3.273 execution image, verify the v3.223 application and worker pre-state and their post-run configuration, and remove its separately tagged temporary job. Abort on image, source version, membership or receipt drift. The proposed job writes four internal audit receipts. Its logs contain aggregate counts, hashes and audit identifiers. Candidate previews are limited to 100 per query and are not emitted. Review decision-bearing originals through authorized sources and document unavailable content. This proposal grants no Member access or report distribution authority.
+
+Engineering owns verification of the exact candidate revision, image availability, scoped environment gate and cleanup. Marc's exact-revision approval is required before merge or one protected run. No live search was performed and no deployment, reader change, registry publication or customer distribution is included.
+
+
 ## 18 November 2026 — Substantive and editorial reviews for every task
 
 Marc directed at least eight substantive re-passes after initial work and at least one separate editorial pass. SAL-D144 applies to every task. The proposed change updates the Charter, decision and artifact registers, startup and operating instructions, and the offline assurance gate. Review evidence is task-specific and bound to the work examined. Previously issued records retain their original history. The new rule is a candidate until the governed branch contains the approved revision. It grants no release or deployment authority.
