@@ -67,6 +67,12 @@ class ComplianceGateTests(unittest.TestCase):
                               'before_evidence': ['holds-before'], 'after_evidence': ['holds-after']}
         self.task['capture'] = {'state': 'reconciled', 'expected': 2, 'retained': 2,
                                 'destination': 'private fixture', 'evidence': ['proof']}
+        self.add_evidence('answer', {'text': 'Fictional decision and its scope.'})
+        self.task['outputs'] = [{'format': 'text', 'claim': 'Fictional decision', 'evidence': 'answer',
+                                 'verification_evidence': ['proof']}]
+        for focus in ('scope', 'source', 'currency', 'calculation', 'alternative', 'effect', 'owner', 'limits'):
+            self.add_pass('substantive', focus)
+        self.add_pass('editorial', 'clarity')
 
     def add_evidence(self, eid, value):
         data = json.dumps(value).encode()
@@ -80,6 +86,17 @@ class ComplianceGateTests(unittest.TestCase):
         self.task['model_reminder'] = {'task_id': self.task['task_id'], 'model': model,
             'reasoning': reasoning, 'text': text, 'evidence': ['reminder'],
             'automatic_switching_claimed': False}
+
+    def add_pass(self, kind, focus, reviewed=None):
+        ledger = self.task['review_passes']
+        number = len(ledger) + 1
+        eid = 'pass-' + str(number)
+        reviewed = ['answer'] if reviewed is None else reviewed
+        entry = {'kind': kind, 'focus': focus, 'finding': 'Fixture observation about ' + focus,
+                 'disposition': 'Retained because the fixture supports ' + focus}
+        self.add_evidence(eid, {'task_id': self.task['task_id'], 'sequence': number, **entry,
+            'reviewed_sha256': {i: self.task['evidence'][i]['sha256'] for i in reviewed}})
+        ledger.append({**entry, 'reviewed': list(reviewed), 'evidence': [eid]})
 
     def mutate_evidence(self, eid, fn):
         value = gate.load(self.evidence / self.task['evidence'][eid]['path'])
@@ -257,6 +274,93 @@ class ComplianceGateTests(unittest.TestCase):
     def test_complete_record_needs_no_routine_human_attestation(self):
         self.assertEqual(self.result()['errors'], [])
         self.assertEqual(self.result()['result'], 'verified_record')
+
+    def test_exact_minimum_and_extra_genuine_reviews(self):
+        result = self.result()
+        self.assertEqual(result['result'], 'verified_record')
+        self.assertEqual(result['counts']['verified_substantive_passes'], 8)
+        self.assertEqual(result['counts']['verified_editorial_passes'], 1)
+        self.add_pass('substantive', 'response to a correction')
+        self.rejects('FINAL_EDITORIAL_PASS_NOT_VERIFIED')
+        self.add_pass('editorial', 'final correction readback')
+        self.assertEqual(self.result()['result'], 'verified_record')
+
+    def test_substantive_minimum_cannot_include_editorial_or_initial_work(self):
+        self.task['review_passes'] = self.task['review_passes'][:7]
+        self.add_pass('editorial', 'final wording')
+        self.rejects('EIGHT_SUBSTANTIVE_REPASSES_REQUIRED')
+        self.task['review_passes'] = []
+        self.add_pass('initial', 'first draft')
+        self.rejects('REVIEW_PASS_NOT_VERIFIED:1')
+
+    def test_eight_substantive_passes_cannot_replace_editorial(self):
+        self.task['review_passes'].pop()
+        self.rejects('FINAL_EDITORIAL_PASS_NOT_VERIFIED')
+
+    def test_replayed_foreign_out_of_order_or_unbound_pass_receipt(self):
+        row = self.task['review_passes'][0]
+        self.mutate_evidence('pass-1', lambda r: r.update(task_id='foreign'))
+        self.rejects('REVIEW_PASS_NOT_VERIFIED:1')
+        self.mutate_evidence('pass-1', lambda r: r.update(task_id=self.task['task_id'], sequence=True))
+        self.rejects('REVIEW_PASS_NOT_VERIFIED:1')
+        self.mutate_evidence('pass-1', lambda r: r.update(sequence=1))
+        row['evidence'] = ['pass-2']
+        self.rejects('REVIEW_PASS_NOT_VERIFIED:1')
+        row['evidence'] = ['pass-1']
+        row['finding'] = 'Unrecorded conclusion'
+        self.rejects('REVIEW_PASS_NOT_VERIFIED:1')
+
+    def test_relabelled_duplicate_pass_on_same_bytes_does_not_count(self):
+        self.task['review_passes'].pop()
+        self.add_pass('substantive', 'fresh heading for same work')
+        old, new = self.task['review_passes'][0], self.task['review_passes'][-1]
+        for key in ('finding', 'disposition'):
+            new[key] = '  ' + old[key].upper()
+        self.mutate_evidence('pass-9', lambda r: r.update(finding=new['finding'], disposition=new['disposition']))
+        self.add_pass('editorial', 'clarity')
+        self.rejects('REVIEW_PASS_NOT_VERIFIED:9')
+
+    def test_same_focus_can_be_rechecked_on_new_revision(self):
+        self.task['review_passes'].pop()
+        self.add_evidence('revision', {'text': 'Updated fictional response'})
+        self.add_pass('substantive', 'scope', ['revision'])
+        self.task['outputs'][0]['evidence'] = 'revision'
+        self.add_pass('editorial', 'latest wording', ['revision'])
+        self.assertEqual(self.result()['result'], 'verified_record')
+
+    def test_unchanged_task_id_cannot_hide_changed_output_bytes(self):
+        self.add_evidence('answer', {'text': 'Different fictional final response'})
+        self.rejects('FINAL_EDITORIAL_PASS_NOT_VERIFIED')
+        self.rejects('REVIEW_PASS_NOT_VERIFIED:9')
+
+    def test_one_editorial_record_can_cover_multiple_final_outputs(self):
+        self.add_evidence('second', {'text': 'Fictional appendix'})
+        self.task['outputs'].append({'format': 'text', 'evidence': 'second', 'claim': 'Fictional appendix',
+                                     'verification_evidence': ['proof']})
+        self.rejects('FINAL_EDITORIAL_PASS_NOT_VERIFIED')
+        self.add_pass('editorial', 'complete package', ['answer', 'second'])
+        self.assertEqual(self.result()['result'], 'verified_record')
+
+    def test_pass_receipt_cannot_review_another_pass_as_the_work(self):
+        self.add_pass('editorial', 'record-only reading', ['answer', 'pass-1'])
+        self.rejects('REVIEW_RECEIPT_USED_AS_WORK')
+
+    def test_missing_passes_in_legacy_record_reconcile_without_inventing_history(self):
+        del self.task['review_passes']
+        self.rejects('REVIEW_PASS_HISTORY_MISSING')
+        updated = gate.reconcile(self.task, self.catalog)
+        self.assertEqual(updated['review_passes'], [])
+        self.assertNotIn('review_passes', self.task)
+        (self.root / gate.ROOTS[0]).write_text('# Next authority\n')
+        new_authority = gate.reconcile(self.task, gate.register(self.root))
+        self.assertEqual(new_authority['authority_history'][-1]['task_sha256'], gate.fingerprint(self.task))
+        self.assertEqual(new_authority['review_passes'], [])
+
+    def test_missing_or_malformed_material_and_no_declared_deliverable_fail_closed(self):
+        self.task['review_passes'][0]['reviewed'] = [{}]
+        self.rejects('REVIEW_PASS_NOT_VERIFIED:1')
+        self.task['outputs'] = []
+        self.rejects('FINAL_EDITORIAL_PASS_NOT_VERIFIED')
 
     def test_every_nonblank_line_is_accounted_for(self):
         path = self.root / gate.ROOTS[0]
