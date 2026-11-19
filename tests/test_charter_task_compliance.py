@@ -5,7 +5,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timezone, timedelta
+from tools.test_assessment_research_entry import research_fixture
 
 MODULE = Path(__file__).resolve().parents[1] / 'tools/charter_task_compliance.py'
 spec = importlib.util.spec_from_file_location('charter_task_compliance', MODULE)
@@ -113,7 +115,111 @@ class ComplianceGateTests(unittest.TestCase):
         self.task['task_type'] = 'assessment'
         self.remind('gpt-6.2-astra', 'highest_available',
                     'Please switch to GPT-6.2 Astra at the highest available reasoning setting.')
-        self.assertEqual(self.result()['result'], 'verified_record')
+        self.assertNotIn('TASK_MODEL_REMINDER_NOT_VERIFIED', self.result()['errors'])
+        self.rejects('PROSPECTIVE_ASSESSMENT_ENTRY_NOT_VERIFIED')
+
+    def test_many_public_sources_and_executed_generic_searches_cannot_open_entry(self):
+        task, raw, now = research_fixture(self.task['task_id'])
+        review = json.loads(raw['review-internet'])
+        review['items'].extend({'id': 'reference-' + str(i), 'version': '1', 'state': 'screened_no_match'}
+                               for i in range(1000))
+        raw['review-internet'] = json.dumps(review).encode()
+        research = json.loads(raw['research'])
+        for number, row in enumerate(research['searches']):
+            receipt = json.loads(raw[row['evidence']])
+            generic = f'General continuity literature edition {number}'
+            receipt['query'] = row['query'] = generic
+            raw[row['evidence']] = json.dumps(receipt).encode()
+            raw[receipt['result']] = (generic + ' results returned by fixture search').encode()
+            task['locations']['internet']['queries'][number]['query'] = generic
+        raw['research'] = json.dumps(research).encode()
+        self.assertIn('ASSESSMENT_RESEARCH_ENTRY_SEARCH', gate.check_research_entry(task, raw, now, True))
+
+    def test_legacy_record_cannot_manufacture_a_research_start_on_reconcile(self):
+        self.task['task_type'] = 'assessment'
+        self.task.pop('started_at', None)
+        recovered = gate.reconcile(self.task, self.catalog)
+        self.assertEqual(recovered['assessment_research'], {})
+        self.assertNotIn('started_at', recovered)
+
+    def test_cli_records_entry_before_analysis_and_reopens_changed_evidence(self):
+        projected, raw, fixture_now = research_fixture(self.task['task_id'])
+        for key in ('task_type', 'started_at', 'assessment_research', 'locations'):
+            self.task[key] = copy.deepcopy(projected[key])
+        self.remind('gpt-6.2-astra', 'highest_available',
+                    'Switch to GPT-6.2 Astra at the highest available reasoning setting.')
+        for key, body in raw.items():
+            meta = projected['evidence'][key]
+            (self.evidence / meta['path']).write_bytes(body)
+            self.task['evidence'][key] = meta.copy()
+        for location, record in self.task['locations'].items():
+            boundary = location + '-fictional-scope'
+            rows = json.loads(raw[record['review']])['items']
+            inventory = {'task_id': self.task['task_id'], 'boundary': boundary,
+                         'authority': 'Fictional scoped inventory',
+                         'observed_at': projected['started_at'],
+                         'items': [{'id': row['id'], 'version': row['version']} for row in rows]}
+            for snapshot in ('before', 'after'):
+                eid = location + '-' + snapshot
+                self.add_evidence(eid, inventory)
+                record[snapshot] = eid
+                record['evidence'].append(eid)
+            record.update(boundary=boundary, discovery_method='Fictional inventory readback')
+        catalog = self.base / 'register.json'
+        task_path = self.base / 'task.json'
+        ledger = self.base / 'journal.json'
+        entry_receipt = self.evidence / 'research-entry.json'
+        final_receipt = self.base / 'final.json'
+        gate.save(catalog, self.catalog)
+        args = ['--root', str(self.root), '--register', str(catalog), '--task', str(task_path),
+                '--evidence-root', str(self.evidence), '--journal', str(ledger)]
+        def run(command, receipt, moment):
+            gate.save(task_path, self.task)
+            class Clock(datetime):
+                @classmethod
+                def now(cls, tz=None):
+                    return moment
+            with patch.object(gate, 'datetime', Clock):
+                return gate.main([command, *args, '--receipt', str(receipt)])
+
+        analysis = self.task['assessment_research'].pop('analysis')
+        outputs = self.task.pop('outputs')
+        recommendations = self.task['analytical_review'].pop('recommendations')
+        for key in (analysis, 'initial-analysis'):
+            del self.task['evidence'][key]
+        entry_time = datetime.fromisoformat(json.loads(raw['research'])['at']) + timedelta(seconds=1)
+        self.assertEqual(run('research-entry', entry_receipt, entry_time), 0)
+        self.assertEqual(gate.load(entry_receipt)['result'], 'entry_verified')
+        self.assertEqual(run('research-entry', entry_receipt, entry_time), 1)
+        self.task['assessment_research']['analysis'] = analysis
+        self.task['analytical_review']['recommendations'] = recommendations
+        for key in (analysis, 'initial-analysis'):
+            self.task['evidence'][key] = projected['evidence'][key]
+        self.task['outputs'] = outputs
+        first_pass = self.task['review_passes'][0]
+        first_pass['reviewed'].append('initial-analysis')
+        self.mutate_evidence(first_pass['evidence'][0],
+                             lambda record: record['reviewed_sha256'].update(
+                                 {'initial-analysis': self.task['evidence']['initial-analysis']['sha256']}))
+        self.task['evidence']['checkpoint'] = {'path': entry_receipt.name,
+            'sha256': gate.fingerprint(entry_receipt.read_bytes()), 'method': 'checkpoint_readback',
+            'provenance': 'Fictional private journal', 'result': 'verified'}
+        self.task['assessment_entry_receipt'] = 'checkpoint'
+        self.assertEqual(run('verify', final_receipt, fixture_now), 0, gate.load(final_receipt)['errors'])
+        self.assertEqual(gate.load(final_receipt)['result'], 'verified_record')
+        # Identical receipt bytes without the earlier journal event cannot close an assessment.
+        self.assertIn('PROSPECTIVE_ASSESSMENT_ENTRY_NOT_VERIFIED',
+                      gate.check(self.root, self.catalog, self.task, self.evidence, fixture_now,
+                                 journal_path=self.base / 'another-ledger.json')['errors'])
+        self.assertEqual(run('research-entry', self.base / 'late.json', fixture_now), 2)
+        self.assertIn('ENTRY_AFTER_SUBSTANTIVE_ASSESSMENT', gate.load(self.base / 'late.json')['errors'])
+        # The old excerpt is still there, but the current source has material new text.
+        source = self.task['evidence']['body-M']
+        source_path = self.evidence / source['path']
+        source_path.write_bytes(source_path.read_bytes() + b' The issuer has revised those instructions.')
+        source['sha256'] = gate.fingerprint(source_path.read_bytes())
+        self.assertEqual(run('verify', final_receipt, fixture_now), 2)
+        self.assertIn('PROSPECTIVE_ASSESSMENT_ENTRY_NOT_VERIFIED', gate.load(final_receipt)['errors'])
 
     def test_missing_reminder_is_blocked(self):
         del self.task['model_reminder']
@@ -165,7 +271,8 @@ class ComplianceGateTests(unittest.TestCase):
         self.assertIn('TASK_MODEL_REMINDER_NOT_VERIFIED', self.result()['errors'])
         self.remind('gpt-6.2-astra', 'highest_available',
                     'Please switch to GPT-6.2 Astra at highest available reasoning.')
-        self.assertEqual(self.result()['result'], 'verified_record')
+        self.assertNotIn('TASK_MODEL_REMINDER_NOT_VERIFIED', self.result()['errors'])
+        self.rejects('PROSPECTIVE_ASSESSMENT_ENTRY_NOT_VERIFIED')
         self.task['task_type'] = 'other'
         self.assertIn('TASK_MODEL_REMINDER_NOT_VERIFIED', self.result()['errors'])
 

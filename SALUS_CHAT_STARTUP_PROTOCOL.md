@@ -234,3 +234,7 @@ Use GPT-6.2 Astra at highest available reasoning in assessment reminders; retain
 ## Every-task review sequence [SAL-D144]
 
 Plan for at least eight substantive re-passes after the initial work and at least one separate final editorial pass. Record actual checks as the task progresses. Before completion, verify the number, order, evidence and disposition of the passes against the current result. For a brief answer or non-document task, include its final response or handoff in the editorial review. Recheck affected conclusions after a material change and review the resulting communication again. Report the specific evidence gap if the record is incomplete.
+
+## Start a Protected Member assessment [SAL-D145]
+
+Before substantive assessment at any level, apply the research entry in `SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md`. Preserve a task-scoped record of the actual Member, aliases, official domains and jurisdictions, named sources, partner authority, four-stream review, original sources, contrary evidence and material gaps. Establish the dated entry checkpoint before the first substantive judgment. Reopen the affected scope when material evidence changes and retain pending work as an internal candidate. The assistant owns this verification.

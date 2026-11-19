@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 18 November 2026 — Research before a substantive Protected Member assessment
+
+Marc directed a Charter correction requiring evidence of Member-specific research before analysis at every assessment level. SAL-D145 adds the prospective checkpoint, named-original and four-stream requirements, exact-source evidence and private chronology. The implementation includes offline validation and fictional regression cases. It is a review candidate until promoted at the authorized revision. Existing assessment releases, access controls, protected workflows and reader settings retain their separate authorization. Preserve historical gaps as recorded. Reassess affected conclusions when material new evidence enters scope.
+
+
 ## 18 November 2026 — Proposed one-time coordination evidence search
 
 A draft change proposes four fixed, member-neutral queries for responder handoffs, public warnings, family reunification and recovery. The existing staff search route returned Not Found at the signed-in v3.223 workspace. The prior task workflow and generic release readback carry different fixed queries. Their receipts cannot establish coverage for this work. Eleven existing local census and receipt tests and a four-query synthetic receipt check passed. Repository validation and the Bicep build are pending.
