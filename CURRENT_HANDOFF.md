@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+
+## 19 November 2026 — Report comprehension and presentation Charter candidate
+
+Marc authorized adoption of the report presentation methods, including selective call-out boxes. This candidate adds SAL-D146, SALUS-PRESENTATION-001 and SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md, updates the Charter, editorial standard, startup and artifact/decision records, and regenerates the canonical requirement register. The methods apply proportionately to their relevant subjects with assistant-owned applicability and exact-output assurance. The candidate creates no additional recommendation register or new unfamiliar-reader/teach-back requirement.
+
+The corresponding private report successors retain their evidence, findings, limitations and handling. Their exact versions, review evidence and open gates remain in the private engagement. No Protected Member originals, assessment detail or private source identities are incorporated here. The reader remains disabled; external issue is held. This is a governance candidate with no runtime deployment. Exact-revision approval and required checks remain the promotion boundary. The named standard's adoption does not establish remediation of every template or deployed report family.
+
 ## 18 November 2026 — Research before a substantive Protected Member assessment
 
 Marc directed a Charter correction requiring evidence of Member-specific research before analysis at every assessment level. SAL-D145 adds the prospective checkpoint, named-original and four-stream requirements, exact-source evidence and private chronology. The implementation includes offline validation and fictional regression cases. It is a review candidate until promoted at the authorized revision. Existing assessment releases, access controls, protected workflows and reader settings retain their separate authorization. Preserve historical gaps as recorded. Reassess affected conclusions when material new evidence enters scope.
