@@ -238,3 +238,8 @@ Plan for at least eight substantive re-passes after the initial work and at leas
 ## Start a Protected Member assessment [SAL-D145]
 
 Before substantive assessment at any level, apply the research entry in `SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md`. Preserve a task-scoped record of the actual Member, aliases, official domains and jurisdictions, named sources, partner authority, four-stream review, original sources, contrary evidence and material gaps. Establish the dated entry checkpoint before the first substantive judgment. Reopen the affected scope when material evidence changes and retain pending work as an internal candidate. The assistant owns this verification.
+
+
+## Required report comprehension and presentation [SAL-D146]
+
+For every report or professional deliverable, read `SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md` and record per-method applicability, the audience's decision, retained evidence and exact artifacts. Apply the nine foundational and twenty additional methods in a proportionate form for the relevant subject, including selective accessible call-out boxes and native question/return navigation. Preserve the distinct four-report purposes, five mission areas, six-step method, substantive findings, limitations, human authority and OPM-referenced formatting. The assistant checks routine conformance, corrects defects, performs the eight substantive and separate editorial re-passes, and verifies the exact rendered outputs before delivery. Record actual unresolved gates and supersession. This standard creates no additional recommendation register or new unfamiliar-reader/teach-back requirement and does not change existing assurance or release controls.

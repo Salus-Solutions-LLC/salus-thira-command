@@ -56,3 +56,8 @@ This member-neutral standard generalizes editorial method only. Keep Member repo
 ## Adoption and impact
 
 Apply prospectively to all new and materially revised assessment reports and review active drafts and template/generator families through a recorded impact queue. Reconcile the three product method standards, approved artifacts and startup instructions with this requirement. A method amendment does not itself repair other binaries, complete historical assessment review or implement software enforcement. Maintain exact reviewed boundaries, owners, missing evidence and next actions; do not claim universal compliance from a single corrected package.
+
+
+## Required comprehension and presentation methods [SAL-D146]
+
+Apply every method and the acceptance rules in `SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md`. Use the report-specific decision/evidence/priority/action purpose to select its expression and reading route. Retain consistent finding briefs, evidence limits and source trace while making the cross-report issue path understandable. Integrate the added diagrams, alternatives, perspectives, dates, scope and review triggers with the existing content. Verify native question/return links, labeled status cues and selective accessible call-out boxes within the common Charter design. Record applicability for each method and exact-report acceptance, including all-page inspection and the existing review passes. Presentation acceptance cannot substitute for source qualification, professional authority, completeness, operational observation or human release.
