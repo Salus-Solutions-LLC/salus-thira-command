@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 19 November 2026 — Assessment lessons Charter candidate
+
+Marc directed a comprehensive record of assessment process changes, improvements and mistakes and their adoption as Charter requirements. This candidate adds SAL-D147, SALUS-ASSESSMENT-LESSONS-001 and the member-neutral 24-control `SALUS_ASSESSMENT_LESSONS_AND_PREVENTION_STANDARD.md`, plus startup and artifact records and the regenerated requirement index. Restricted source identities, Member findings, commercial information, concrete defect evidence and exact report hashes remain in the authorized private engagement.
+
+The standard distinguishes documented errors, implemented corrections and proposed improvements. It requires real paragraph-role typography checks rather than an absolute floor alone; source and access completeness proof rather than counts; bounded research entry; distinct report purposes and mission areas; meaningful handoffs and version comparisons; separate human authorities; preserved historical exceptions; and honest acceptance states. Existing report and template remediation, source/release closeout and deployed enforcement remain separate work. No reader setting, runtime deployment or report transmission is authorized. Exact-revision promotion remains a separate gate.
+
+
 
 ## 19 November 2026 — Report comprehension and presentation Charter candidate
 
