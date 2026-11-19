@@ -21,6 +21,14 @@ Preserve all findings, source evidence, uncertainty, contrary information, stabl
 
 This requirement creates no additional recommendation register or new unfamiliar-reader/teach-back testing requirement. Existing assurance, source coverage, retention and human release controls retain their scope. Protected Member evidence remains in the private engagement. Report presentation approval grants no external issue, reader activation, deployment or operating authority. Governed promotion and legacy artifact remediation remain separately evidenced.
 
+## Assessment lessons and prevention requirements [SALUS-ASSESSMENT-LESSONS-001; SAL-D147]
+
+Marc directed on 19 November 2026 that the lessons from conducting and revising an assessment, including mistakes and corrective improvements, become Charter requirements. Apply `SALUS_ASSESSMENT_LESSONS_AND_PREVENTION_STANDARD.md` to every assessment and related research, source review, report revision, assurance and release task. Apply the relevant prevention controls to other Salus work.
+
+Retain a restricted engagement learning account with actual evidence, affected versions, consequence, correction, verification, owner and unresolved limits. Transfer only member-neutral methods into enterprise requirements. Require its 24 controls covering scope and access, research entry and source completeness/custody, named original editions, instruction-versus-performance evidence, distinct four-product purposes, five mission areas, affected-person handoffs, cross-sector method transfer, meaningful status and document history, proportionate presentation, function-based body typography and exact visual verification, eight substantive plus terminal editorial re-passes, separate human authorities, historical exceptions, protected promotion and honest final readiness.
+
+The assistant owns ordinary compliance and correction. Do not ask the owner to attest routine performance, repeat completed approvals, infer comprehension or fabricate unavailable evidence. A failed acceptance criterion reopens affected acceptance and requires a verified correction. Preserve originals, privacy, source rights, existing qualification, explicit holds and human report-issue authority. This requirement does not claim that every template, generator or report is already remediated or deployed.
+
 ## Purpose
 
 Salus Solutions LLC is an intelligence, security, investigations, emergency-management, and operational-support company. The Salus program turns fragmented information into qualified intelligence, prioritized risk decisions, coordinated actions, and defensible records for Protected Members.

@@ -126,3 +126,6 @@ The Program Charter and Decision Register now govern the distinct SalINTEL™ Fa
 
 
 | `SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md` | Member-neutral Charter implementation candidate for SAL-D146 and SALUS-PRESENTATION-001, covering nine foundational and twenty additional methods, assistant-owned applicability and exact-report acceptance. | Marc authorized the requirement on 19 November 2026; this implementation becomes authoritative through governed promotion. Legacy artifact remediation, source qualification, external issue and deployment remain separately evidenced. |
+
+
+| `SALUS_ASSESSMENT_LESSONS_AND_PREVENTION_STANDARD.md`, SAL-D147 / SALUS-ASSESSMENT-LESSONS-001 | Member-neutral 24-control assessment learning and regression-prevention standard; exact-case learning remains restricted | Requirement directed by Marc on 19 November 2026. Implementation candidate pending checked exact-revision promotion. Does not approve case findings, source uses, revised binaries, deployments, broad legacy migration, reader activation or external sending. |
