@@ -29,7 +29,7 @@
     "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "ba2658b4f7bbaf7ed679b1d52a272048c740349c9946cb6fbf3b86b3ada4983a",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
     "SALUS_PROGRAM_CHARTER.md": "3c1ed103b3f3c416a9ee7bf5a89e6077a842721c3169ff5ea764384d6176c7f4",
-    "SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md": "65c3979502026fae7c67e848821368e886fcba8dd0a999f5e518c318081ce27a",
+    "SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md": "27c9b6311a5fc7033c198cfc032c4cced6443f4fa164ca75fff1e74cfbfabb55",
     "SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md": "e2a6c9f76dd33e291305fec43548ad0021a1cf44d0acaaa87f075bea57eb9409",
     "SALUS_RESEARCH_CAPTURE_AND_KNOWLEDGE_TRANSFER_STANDARD.md": "aa0ae006af695af39c14a5194e3a0568dcc3481eab4ffbf1b2d487c12ef9df19",
     "SALUS_RESEARCH_COVERAGE_AND_GAP_CLOSURE_STANDARD.md": "55f0fa5b967a9da5417f5bc750e788de5a5eabc703e43225194986a25041987e",
@@ -18251,11 +18251,11 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-fedcdc6fd4ec762bca7aced6",
+      "id": "REQ-2d0fb289f7ba0b8a450a7d36",
       "source": "SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md",
       "line": 37,
       "section": "Salus Report Comprehension and Presentation Standard / Decision navigation and reasoning",
-      "text_sha256": "c45f15c3bb1188afd4e1bba486788349ca892011c5fc7e88e6bbd7b29c71524e",
+      "text_sha256": "38d0f66bf948a977d27e0d249a53f8b22f7713b2a5a59e7722f8fbfc4539f876",
       "decision_ids": []
     },
     {
@@ -33104,5 +33104,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "0d34844757871808c8a07512b87bb50afb756500fa647787e7fc7ed88f46b008"
+  "register_sha256": "f42747e22298759973ea82618c6e5a7afe31f2901728ec1d28584ae3dbf9699c"
 }

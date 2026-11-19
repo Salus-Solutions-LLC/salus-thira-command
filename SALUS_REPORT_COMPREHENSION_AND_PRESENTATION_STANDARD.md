@@ -34,7 +34,7 @@ All nine foundational methods and all twenty additions below are required where 
 | A04 | Decision authority | Show which internal role can decide, which partner must confirm its own commitment, and which competent professional must make a scoped determination. Retain unknown authority as open. |
 | A05 | Decision dependencies | Identify which unresolved question constrains which decision and what independently authorized work can proceed. An unknown establishes an evidence limit. |
 | A06 | Benefit effort and confidence | Compare practical choices on expected benefit to people, effort, dependencies, evidence confidence and residual uncertainty. Distinguish estimates from measured values. |
-| A07 | Edition changes | State changes in conclusions, evidence and presentation, with prior version, retained limitations and review status. An editorial revision grants no new release or operating authority. |
+| A07 | Protected Member document review history | State whether this is the initial assessment review baseline. For previously reviewed Member documents, identify the compared Member editions, their dates and material additions, deletions or changes, with source locations and effects on the assessment. Distinguish a newly supplied document from a verified revision of an earlier edition. If a predecessor or comparison is unavailable, state that limit; dates alone do not establish supersession. Keep Salus report production history in its separate internal version-control record. |
 
 ## People evidence and scope
 
