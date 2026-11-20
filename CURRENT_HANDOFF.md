@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 20 November 2026 — Document editorial and format Charter candidate
+
+Marc directed an explicit editorial and format edit requirement after reviewing headings in the Twelve Connected Risks speaker proposal. This candidate adds SAL-D148 / SALUS-DOC-EDITORIAL-FORMAT-001 to the Charter, print standard, startup protocol and artifact/decision records and regenerates the canonical requirements index. It requires heading wording, hierarchy and effective spacing review, clear consistent prose, and inspection of every page of the exact revised document. Routine correction belongs to the assistant; source qualification, human issue, exact-revision promotion and deployment remain separate.
+
+The proposal successor and its exact-file review evidence remain in the authorized Speaker Events workspace and intake. No customer original, private assessment or proposal binary is introduced into this governance change. Existing eight substantive plus terminal editorial passes, typography and cover rules are retained. The policy does not establish legacy remediation or deployed enforcement. This candidate is prepared for exact-revision review, not merged or deployed by this entry.
+
+
 ## 19 November 2026 — Assessment lessons Charter candidate
 
 Marc directed a comprehensive record of assessment process changes, improvements and mistakes and their adoption as Charter requirements. This candidate adds SAL-D147, SALUS-ASSESSMENT-LESSONS-001 and the member-neutral 24-control `SALUS_ASSESSMENT_LESSONS_AND_PREVENTION_STANDARD.md`, plus startup and artifact records and the regenerated requirement index. Restricted source identities, Member findings, commercial information, concrete defect evidence and exact report hashes remain in the authorized private engagement.
