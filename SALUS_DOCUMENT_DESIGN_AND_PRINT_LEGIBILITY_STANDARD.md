@@ -33,6 +33,10 @@ Heading 1 (level 1): **12 pt before and 12 pt after**. Heading 2 (level 2): **12
 
 Accommodate the larger type by increasing page count, table row height, cell padding, column width, paragraph spacing, header/footer distance, or section layout as necessary. Repeat table header rows across pages, keep words intact rather than wrapping them mid-word, and split or reorient complex tables when needed. Adjust header and footer spacing so their text remains clear of body content and printer nonprintable areas. Do not reduce margins or crowd page furniture merely to preserve a prior page count.
 
+## Editorial and heading review before delivery
+
+Apply SALUS-DOC-EDITORIAL-FORMAT-001 / SAL-D148 in the Charter to the exact populated document. Read the title and headings as an outline; verify wording, hierarchy, actual styles, numbering and effective spacing. Edit prose for clear, consistent meaning and the intended reader. Correct defects and inspect every page of the revised rendering, using native Word when available for a Word deliverable. Retain exact-version evidence and any unavailable verification path. A source-template approval, automated spacing/font pass or draft label does not replace this edit. Preserve existing size floors, branding, cover clearance, header/footer rules, substantive review passes and separate release authority.
+
 ## Release validation
 
 Before release, inspect the exact DOCX, PDF and print/save version offered to the reader. At minimum:
