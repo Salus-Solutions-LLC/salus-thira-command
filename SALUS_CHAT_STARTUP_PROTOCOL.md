@@ -1,5 +1,9 @@
 # Salus Solutions — Chat Startup and Handoff Protocol
 
+## Integrated assessment review
+
+Apply SAL-D149 / SALUS-INTEGRATED-REVIEW-001 and `SALUS_INTEGRATED_OPERATIONAL_LEGAL_FINANCIAL_REVIEW_STANDARD.md` to every assessment and material reassessment. Trace operational, legal and financial dependencies for each material finding and recommendation; record authority, ownership, available/funded resources, fallback, evidence and open specialist questions. Preserve report purpose separation, evidence limits, professional boundaries and separate release controls.
+
 ## New-chat startup prompt
 
 Paste this into any new Salus chat when needed:
