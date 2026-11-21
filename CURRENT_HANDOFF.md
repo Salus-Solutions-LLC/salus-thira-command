@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 21 November 2026 — Integrated assessment review candidate
+
+The Salus owner authorized a mandatory operational, legal and financial review for all assessments and its application to the current private assessment. SAL-D149 / SALUS-INTEGRATED-REVIEW-001 requires finding-specific dependencies, authority, resources, financial uncertainty, fallback and proof, with separate product purposes and professional boundaries. The source of the requirement is the owner direction; no unverified court quotation is incorporated. Charter, method standard, startup, decision/artifact records and the requirements catalog are updated in this candidate.
+
+Private assessment revisions and evidence remain in the restricted engagement. Existing source qualification and issue gates remain open. The reader is not enabled, and no sending, spending, operational adoption or deployment is performed. Exact-revision authorization and required checks remain the merge boundary; this entry does not claim promotion or universal implementation.
+
 ## 20 November 2026 — Document editorial and format Charter candidate
 
 Marc directed an explicit editorial and format edit requirement after reviewing headings in the Twelve Connected Risks speaker proposal. This candidate adds SAL-D148 / SALUS-DOC-EDITORIAL-FORMAT-001 to the Charter, print standard, startup protocol and artifact/decision records and regenerates the canonical requirements index. It requires heading wording, hierarchy and effective spacing review, clear consistent prose, and inspection of every page of the exact revised document. Routine correction belongs to the assistant; source qualification, human issue, exact-revision promotion and deployment remain separate.

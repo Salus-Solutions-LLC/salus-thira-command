@@ -1,5 +1,18 @@
 # Salus Solutions — Master Program Charter
 
+## Integrated operational legal and financial review for every assessment [SALUS-INTEGRATED-REVIEW-001; SAL-D149]
+
+The Salus owner directed this requirement on 21 November 2026. Every assessment and material reassessment must evaluate operational feasibility, legal implications and financial requirements together under `SALUS_INTEGRATED_OPERATIONAL_LEGAL_FINANCIAL_REVIEW_STANDARD.md`. Apply at every assessment level and across SalINTEL, SalTHIRA, SalOPS and SalCAPA, with proportionate depth and a recorded disposition for each material finding and recommendation.
+
+Trace assumptions and dependencies between operations, legal/risk management, finance and affected people. Identify responsible and receiving roles, applicable authority, available resources, funding/payment responsibility, fallback and evidence that the combined arrangement works. Examine unowned tasks, unfunded duties, incompatible instructions, partner availability and simultaneous demands. Preserve contrary evidence; distinguish instructions, agreements and reported practice from demonstrated performance. Risk management is broader than legal review.
+
+Identify jurisdiction and entity/activity applicability before suggesting legal duties. Distinguish binding requirements, contractual obligations, guidance and recommendations. Compare life-cycle costs, staff/volunteer capacity, alternatives, disruption and residual exposure. State financial assumptions, uncertainty, timing and estimate basis. Quantify cost-benefit or ROI only with defensible inputs; otherwise use cost-effectiveness and observable capability outcomes. Neither a speculative return nor a budget limitation establishes permission to disregard applicable duties or life safety.
+
+SalINTEL owns sources and evidence limits; SalTHIRA owns scenarios, consequences and capability priorities across five mission areas; SalOPS owns feasible options, resources, authority and proof; SalCAPA owns the integrated decision and remaining conditions. Preserve purpose separation, the six-step method and stable IDs. Identify professional referral questions without implying attorney/accountant review, privilege, admissibility, insurance coverage or accounting acceptance that has not occurred.
+
+Routine conformance and corrections belong to the assistant. Retain evidence, unresolved conditions, eight substantive plus terminal editorial passes and exact-file visual review. Apply controlled impact review to active drafts and templates; preserve originals, qualification and human release gates. This amendment grants no reader activation, external sending, operational adoption, spending or deployment. Repository incorporation remains subject to governed exact-revision promotion.
+
+
 
 ## Mandatory editorial and format edit for every Salus document [SALUS-DOC-EDITORIAL-FORMAT-001]
 

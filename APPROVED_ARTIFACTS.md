@@ -130,3 +130,7 @@ The Program Charter and Decision Register now govern the distinct SalINTEL™ Fa
 
 
 | `SALUS_ASSESSMENT_LESSONS_AND_PREVENTION_STANDARD.md`, SAL-D147 / SALUS-ASSESSMENT-LESSONS-001 | Member-neutral 24-control assessment learning and regression-prevention standard; exact-case learning remains restricted | Requirement directed by Marc on 19 November 2026. Implementation candidate pending checked exact-revision promotion. Does not approve case findings, source uses, revised binaries, deployments, broad legacy migration, reader activation or external sending. |
+
+## Integrated assessment review requirement
+
+`SALUS_INTEGRATED_OPERATIONAL_LEGAL_FINANCIAL_REVIEW_STANDARD.md` implements SAL-D149 / SALUS-INTEGRATED-REVIEW-001. Directed 21 November 2026; controlled implementation candidate pending exact-revision promotion. Current private report application is separately authorized. No case evidence, financial data, report binaries, source qualification or external release approval is included here.
