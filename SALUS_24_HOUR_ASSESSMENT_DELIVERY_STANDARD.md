@@ -1,0 +1,47 @@
+# Salus 24 Hour Assessment Standard
+
+## Authority and scope
+
+SALUS-ASSESSMENT-24H-001 / SAL-D150. The Salus owner directed this requirement on 22 November 2026 and authorized immediate application to the existing private assessment. This exact repository implementation is a candidate pending governed promotion. Apply to every new assessment, material reassessment and its four same-level reports. Preserve the authorized decision unit, level and full quality requirements; do not subdivide work or narrow the scope merely to hide a deadline breach.
+
+## Required deadline and honest completion
+
+Return the complete requested assessment package for owner approval within 24 elapsed hours of accepting the authorized assessment instruction. Record the instruction reference, first observed acceptance time, timezone, original deadline, accountable analyst, scope, capacity and available inputs. Where the exact earlier instruction time is unavailable, retain that uncertainty and do not invent it. Intake, source review, qualification preparation, analysis, eight substantive re-passes, a terminal editorial pass, document generation and exact-file verification are inside this clock.
+
+Use elapsed wall-clock time, including idle periods, interruptions, tool failures, waiting for outside records and unavailable personnel. Do not reset the clock when a chat ends, a report version changes, a source batch starts or a dependency fails. Record actual return time, elapsed duration and any breach. An explicit user stop preserves the original deadline and elapsed record; a subsequently authorized new delivery commitment is separately recorded, not retroactive compliance. Do not promise unattended work unless the execution capability is actually available and verified.
+
+Owner approval, outside professional decisions and external sending retain separate authorities and their actual waiting times. The 24-hour deliverable is the package returned for approval, not permission to send. Record total engagement elapsed time as well as the controlled delivery cycle. Missing material evidence or qualification requires a clearly bounded internal package with affected conclusions, release blockers, owner and next proof. Such a package satisfies timely return only; it does not establish completed research, source qualification, Charter acceptance or readiness to issue. Report whether time and quality passed separately. Notify the owner as soon as a material breach becomes foreseeable and return the best safely bounded package by the deadline; do not quietly extend it.
+
+For an assessment already underway when this standard is adopted, retain its true historical start, elapsed time and unresolved requirements. Record a legacy transition exception and a separate 24-hour closeout deadline from the current instruction's observed acceptance. Never claim the full historical engagement met 24 hours. A continuation after that deadline retains the original closeout result and breach history.
+
+## Delivery sequence and capacity
+
+The planning budget is hours 0–2 for scope, current inventory and material gaps; 2–8 for original/contrary source review and qualification preparation; 8–14 for integrated analysis and challenges; 14–18 for four-report production; 18–22 for substantive/editorial and exact-file assurance; and 22–24 for corrections and return. These are maximum planning windows, not required waits. Start substantive checks as evidence becomes available, complete all eight distinct substantive re-passes after initial work, and perform the terminal editorial pass on the resulting package. Never compress checks into repeated labels or omit them to meet time.
+
+At intake assess capacity, source volume/format, lawful access, reviewer availability, site/interview needs and execution continuity. Use existing qualified research, current approved templates and one shared source/finding/decision record. Assign work concurrently only where tools, permissions and explicit delegation instructions permit; keep report writing single-owner. Do not authorize spending, active reconnaissance, new access or background processing by inference from this standard. If the authorized depth cannot be completed within capacity, disclose the conflict immediately and retain it as an exception; do not promise equivalent quality or extend the clock without disclosure.
+
+## Source coverage and qualification
+
+Maintain one reconciled source inventory and one execution ledger across batches. Consider the entire current authorized Knowledge and OSINT boundaries and all expressly named source families; search relevant public, Member-specific, primary, contrary and other authorized sources. Record current inventory/census gaps as gaps. A search-hit roster is not a corpus census. Join exact identities/versions, deduplicate exact shared content with occurrence maps, read all material differences and relevant content-bearing parts, and preserve originals. Distinguish considered, excluded with reason, read, partial, inaccessible, candidate and human-qualified states.
+
+Prioritize decision-changing and consequential gaps without declaring the remaining queue reviewed. For each pending material item record the finding/decision affected, consequence of error, collection route, owner, next proof and release effect. Stop expanding a research branch only with the existing diligence judgment: adequate support at the authorized level, relevant contrary/linked leads dispositioned, and reasoned low likelihood of changing the decision relative to delay and cost. Where required, obtain the existing qualified review of exclusions and stopping decisions. Time alone never supplies that judgment. Unavailable originals, unread media, unresolved conflicts and rights limits remain visible.
+
+Reuse qualified source uses only within their recorded versions, rights, currency, population/jurisdiction and exact-use limits. Prepare new qualification decisions early and in coherent batches. Never substitute automated extraction, assistant approval, a deadline, prior owner report approval or a different source-use approval for the qualified human review required by SAL-D121/SAL-D127. Where that review is unavailable, keep the affected uses candidate and the release blocked. Do not ask the owner to attest ordinary assistant conformance.
+
+## Analysis and four report production
+
+Preserve the six-step SalTHIRA method, five mission areas, applicable capability screens, anticipatory analysis, operational/legal/financial integration, stable IDs and four distinct product purposes. Challenge assumptions, compare applicable methods, reconcile contradictory evidence and unintended consequences, and state recommendation reasoning, alternatives and limitations. Procedures establish instructions; they do not establish performance. Use defensible financial inputs and preserve unfilled client prompts where inputs are missing.
+
+SalINTEL maintains the evidence account; SalTHIRA owns scenario and capability priorities; SalOPS owns feasible options, authority, resources and proof; SalCAPA integrates leadership decisions and remaining conditions. Produce all four from one stabilized analytical baseline after coherent source batches. Avoid a report rebuild after each source. Reopen affected analysis for decision-changing evidence; retain the original deadline and record the change. Keep report production history separate from Protected Member document-version history.
+
+## Quality and acceptance evidence
+
+Preserve the current Charter formatting, worksheet/control behavior, source qualification, privacy, handling and human issue gates. Verify exact-file source/finding/decision trace, substantive preservation, headings/prose, table consistency, accessibility structure, native navigation/pagination, all-page rendering and visual review, and separate-copy worksheet entry/save/reopen when applicable. Correct and rerun affected checks before return. A populated template, passing metadata check or deadline does not establish quality.
+
+Retain the eight distinct substantive review records and terminal editorial record, exact report hashes and versions, source states and material gaps, qualification decisions, return time, elapsed result, quality result, release status and hold readback. Never state an overall completion percentage without an explicit valid denominator and completion criterion. Report inventory consideration, content review, qualification, report verification, elapsed-time compliance and release separately.
+
+Use `tools/assessment_delivery_window.py` as a local record checker for timestamps, immutable deadline and separate timely-return/quality states. Its result is not proof of substantive truth, qualified human judgment, delivery receipt, universal enforcement, continuous execution or production deployment. Retain actual proof for those claims.
+
+## Implementation and limits
+
+Apply the directed workflow immediately to the authorized private closeout; promote the enterprise Charter amendment only through existing exact-revision change control. Record active-template/generator impact and legacy migration rather than claiming universal remediation. Keep source details, Member findings, worksheets and report binaries in the restricted engagement. Preserve disabled readers and all no-send instructions. No access expansion, operational adoption, spending, deployment, source promotion or external sending is authorized by this standard.

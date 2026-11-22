@@ -134,3 +134,7 @@ The Program Charter and Decision Register now govern the distinct SalINTEL™ Fa
 ## Integrated assessment review requirement
 
 `SALUS_INTEGRATED_OPERATIONAL_LEGAL_FINANCIAL_REVIEW_STANDARD.md` implements SAL-D149 / SALUS-INTEGRATED-REVIEW-001. Directed 21 November 2026; controlled implementation candidate pending exact-revision promotion. Current private report application is separately authorized. No case evidence, financial data, report binaries, source qualification or external release approval is included here.
+
+## 24 hour assessment delivery requirement
+
+`SALUS_24_HOUR_ASSESSMENT_DELIVERY_STANDARD.md`, SAL-D150 / SALUS-ASSESSMENT-24H-001, implements the owner's 22 November 2026 direction. Member-neutral controlled implementation candidate pending checked exact-revision promotion; immediate authorized private workflow use is separate. `tools/assessment_delivery_window.py` checks clock/record consistency only; its passing tests do not establish substantive quality, source qualification, real delivery or unattended execution. Existing templates/generators require recorded impact review; no universal remediation is claimed.
