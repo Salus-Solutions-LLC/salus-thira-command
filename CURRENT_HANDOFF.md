@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 22 November 2026 — 24 hour assessment delivery requirement candidate
+
+The owner directed SAL-D150 / SALUS-ASSESSMENT-24H-001 and immediate private application. This candidate adds an immutable wall-clock deadline, phased capacity plan, source inventory/material-gap reconciliation, coherent batches before report generation, preserved qualification and eight substantive plus terminal editorial reviews, exact-file/worksheet acceptance, and separate time, quality and release states. Existing assessments retain historical delay and a recorded transition exception. Unavailable evidence cannot be relabeled complete to meet time. Local checker/tests validate records only; no unattended runtime or universal 24-hour performance claim.
+
+Private scope, source identities, reports and findings remain outside the repository. Enterprise adoption requires passing checks and exact-revision approval; no merge, deployment, reader activation, access change or external sending is performed by this entry. Follow actual PR/check readback and private handoff for implementation status.
+
+
 ## 21 November 2026 — Integrated assessment review candidate
 
 The Salus owner authorized a mandatory operational, legal and financial review for all assessments and its application to the current private assessment. SAL-D149 / SALUS-INTEGRATED-REVIEW-001 requires finding-specific dependencies, authority, resources, financial uncertainty, fallback and proof, with separate product purposes and professional boundaries. The source of the requirement is the owner direction; no unverified court quotation is incorporated. Charter, method standard, startup, decision/artifact records and the requirements catalog are updated in this candidate.

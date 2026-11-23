@@ -20,6 +20,8 @@ jobs:
         run: python tools/ci_charter_task_compliance.py
       - name: Verify positive and adverse control behavior
         run: python -m unittest discover -s tests -p test_charter_task_compliance.py -v
+      - name: Verify assessment delivery clock and quality separation
+        run: python -m unittest discover -s tools -p test_assessment_delivery_window.py -v
       - name: Install document inspection dependencies
         run: pip install python-docx==1.2.0 pypdf==6.21.4
       - name: Verify research entry and fail-closed assessment cases

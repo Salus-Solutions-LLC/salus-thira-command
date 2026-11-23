@@ -1,5 +1,14 @@
 # Salus Solutions — Master Program Charter
 
+## Mandatory 24 hour assessment delivery [SALUS-ASSESSMENT-24H-001; SAL-D150]
+
+The Salus owner directed this requirement on 22 November 2026. Every assessment and material reassessment must return its four same-level reports for owner approval within 24 elapsed hours of accepting the authorized instruction, under `SALUS_24_HOUR_ASSESSMENT_DELIVERY_STANDARD.md`. Record the actual start, immutable deadline, capacity, scope, source inventory, material gaps, exact outputs, return time and separate time/quality/release results. Preserve historical elapsed time; a legacy transition deadline never makes an earlier engagement compliant retroactively.
+
+Use one source/finding/decision record, qualified reusable research within its limits, exact duplicate/version reconciliation and coherent batches before report production. Plan hours 0–2 intake, 2–8 original/contrary review, 8–14 analysis, 14–18 reports, 18–22 assurance and 22–24 correction/return. Retain all eight distinct substantive re-passes and the terminal editorial pass. Preserve all-source consideration, material linked/contrary review, human source qualification, four report purposes, five mission areas, six-step method, operational/legal/financial integration, worksheet and current formatting. Do not rebuild four reports after every source batch.
+
+Idle time, tool failures and outside waits do not silently reset the clock. Disclose foreseeable delay immediately. Missing material evidence or qualification requires a bounded internal package and explicit release blocker, not invented closure or reduced quality. Timely return is separate from completed research, Charter acceptance, qualified findings, owner approval and external issue. Report a deadline breach honestly. Do not promise unattended capability, universal quality or a completion percentage without proof. This direction authorizes current private workflow application; repository promotion, external sending, operations, reader activation, permissions, spending and deployment retain separate authority.
+
+
 ## Integrated operational legal and financial review for every assessment [SALUS-INTEGRATED-REVIEW-001; SAL-D149]
 
 The Salus owner directed this requirement on 21 November 2026. Every assessment and material reassessment must evaluate operational feasibility, legal implications and financial requirements together under `SALUS_INTEGRATED_OPERATIONAL_LEGAL_FINANCIAL_REVIEW_STANDARD.md`. Apply at every assessment level and across SalINTEL, SalTHIRA, SalOPS and SalCAPA, with proportionate depth and a recorded disposition for each material finding and recommendation.

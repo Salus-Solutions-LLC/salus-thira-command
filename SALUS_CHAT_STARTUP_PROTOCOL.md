@@ -1,5 +1,10 @@
 # Salus Solutions — Chat Startup and Handoff Protocol
 
+## 24 hour assessment preflight and closeout
+
+Apply SAL-D150 and `SALUS_24_HOUR_ASSESSMENT_DELIVERY_STANDARD.md` to every assessment. Record observed acceptance, source instruction, original start/deadline, source inventory, capacity and qualified-review availability before work. Preserve the clock across interruptions and versions; retain any legacy exception. Use coherent batches and one analytical baseline before four-report generation, then complete all quality gates. Return the package within 24 elapsed hours; unresolved evidence/qualification stays explicitly bounded and blocks affected release. Record timely return, quality and external issue separately. No sending or disabled-reader change follows.
+
+
 ## Integrated assessment review
 
 Apply SAL-D149 / SALUS-INTEGRATED-REVIEW-001 and `SALUS_INTEGRATED_OPERATIONAL_LEGAL_FINANCIAL_REVIEW_STANDARD.md` to every assessment and material reassessment. Trace operational, legal and financial dependencies for each material finding and recommendation; record authority, ownership, available/funded resources, fallback, evidence and open specialist questions. Preserve report purpose separation, evidence limits, professional boundaries and separate release controls.
