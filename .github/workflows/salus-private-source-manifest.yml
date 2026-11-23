@@ -1,0 +1,174 @@
+name: Salus private source manifest
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/salus-private-source-manifest.yml'
+      - 'infra/azure/private-knowledge-source-manifest-job.bicep'
+      - 'tools/private_knowledge_manifest.py'
+      - 'tools/private_knowledge_manifest_payload.py'
+      - 'tests/test_private_knowledge_manifest.py'
+      - 'deploy/azure/activations/private-knowledge-source-manifest-20261123.json'
+  push:
+    branches: [development/salcapa-platform]
+    paths:
+      - 'deploy/azure/activations/private-knowledge-source-manifest-20261123.json'
+
+concurrency:
+  group: salcapa-knowledge-diagnostic
+  cancel-in-progress: false
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: python -m pip install PyYAML==6.0.2 -r requirements.txt
+      - run: python -m unittest discover -s tests -p test_private_knowledge_manifest.py -v
+      - name: Verify activation, bootstrap, shell and private-only output
+        run: |
+          python - <<'PY'
+          import base64,hashlib,json,pathlib,subprocess,yaml
+          from tools.private_knowledge_manifest_payload import bundle
+          root=pathlib.Path('.')
+          a=json.loads((root/'deploy/azure/activations/private-knowledge-source-manifest-20261123.json').read_text())
+          assert a['operation']=='private_knowledge_source_manifest' and a['allowed_attempts']==1
+          assert a['audit_receipt_insert_limit']==4 and a['private_encrypted_file_create_limit']==1
+          assert a['public_artifacts'] is False and a['production_deployment_authorized'] is False
+          assert a['source_content_exported'] is False and a['source_permission_changes'] is False
+          assert a['cpu']==0.25 and a['memory_gib']==0.5 and a['max_execution_seconds']==900 and a['replica_retry_limit']==0
+          payload=base64.b64decode(bundle(root,a,'12345','1','0'*40));compile(payload,'<proposed-bootstrap>','exec')
+          assert len(payload)<100000 and b'PRIVATE KEY' not in payload
+          w=yaml.load((root/'.github/workflows/salus-private-source-manifest.yml').read_text(),Loader=yaml.BaseLoader)
+          assert 'workflow_dispatch' not in w['on'] and w['jobs']['authorize_scoped']['environment']=='salcapa-dev-approval'
+          for job in w['jobs'].values():
+              for step in job.get('steps',[]):
+                  assert 'upload-artifact' not in step.get('uses','')
+                  if 'run' in step:subprocess.run(['bash','-n'],input=step['run'],text=True,check=True)
+          print('Private-only proposed source manifest and workflow checks passed')
+          PY
+      - run: az bicep build --file infra/azure/private-knowledge-source-manifest-job.bicep --stdout > /tmp/private-manifest-template.json
+
+  authorize_scoped:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: salcapa-dev-approval
+    permissions: {}
+    steps:
+      - run: echo "Protected one-execution private metadata manifest gate passed."
+
+  private_manifest:
+    needs: authorize_scoped
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Validate one execution and exact proposed source
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          python tools/private_knowledge_manifest_payload.py --activation deploy/azure/activations/private-knowledge-source-manifest-20261123.json --run "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" --commit "$GITHUB_SHA" > /tmp/private-manifest-bootstrap.b64
+          test "$(jq -r .operation deploy/azure/activations/private-knowledge-source-manifest-20261123.json)" = private_knowledge_source_manifest
+          test "$(jq -r .task_key deploy/azure/activations/private-knowledge-source-manifest-20261123.json)" = salus-private-source-reconciliation-20261123
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Execute one source-read-only reconciliation and private encrypted retention
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          set -euo pipefail
+          test "$RESOURCE_GROUP" = rg-salcapa-dev
+          ACT=deploy/azure/activations/private-knowledge-source-manifest-20261123.json
+          BASE="https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App"
+          JOB=salcapa-private-manifest-b48224
+          python tools/knowledge_inventory_azure_transport.py absent --url "$BASE/jobs?api-version=2025-07-01" --name "$JOB"
+          echo "PRIVATE_MANIFEST_NAMESPACE_CLEAR=1" >> "$GITHUB_ENV"
+          python tools/knowledge_inventory_azure_transport.py get --url "$BASE/containerApps/salcapa-dev-b48224?api-version=2025-07-01" --output /tmp/private-manifest-app-before.json
+          python tools/knowledge_inventory_azure_transport.py get --url "$BASE/jobs/salcapa-dev-b48224-kb-scan?api-version=2025-07-01" --output /tmp/private-manifest-worker-before.json
+          EXPECTED_RUNTIME="$(jq -r .expected_runtime_image_digest "$ACT")"
+          EXPECTED_IMAGE="$(jq -r .execution_image_digest "$ACT")"
+          test "$(jq -r .properties.template.containers[0].image /tmp/private-manifest-app-before.json)" = "$EXPECTED_RUNTIME"
+          test "$(jq -r .properties.template.containers[0].image /tmp/private-manifest-worker-before.json)" = "$EXPECTED_RUNTIME"
+          test "$(az acr repository show --name salcapadevb48224acr --image "salcapa@${EXPECTED_IMAGE##*@}" --query digest --output tsv --only-show-errors 2>/tmp/private-manifest-registry-error.txt)" = "${EXPECTED_IMAGE##*@}"
+          env_value() { jq -er --arg name "$1" 'first(.properties.template.containers[0].env[] | select(.name == $name) | .value)' /tmp/private-manifest-worker-before.json; }
+          test "$(env_value SALUS_DB_BACKEND)" = postgres
+          test "$(env_value SALUS_POSTGRES_AUTH)" = entra
+          IDENTITY_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query id --output tsv --only-show-errors 2>/tmp/private-manifest-identity-error.txt)"
+          IDENTITY_CLIENT_ID="$(az identity show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-identity --query clientId --output tsv --only-show-errors 2>/tmp/private-manifest-identity-error.txt)"
+          ENVIRONMENT_ID="$(az containerapp env show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-aca-env --query id --output tsv --only-show-errors 2>/tmp/private-manifest-environment-error.txt)"
+          SCRIPT_B64="$(cat /tmp/private-manifest-bootstrap.b64)"
+          az deployment group create --name "salus-private-manifest-$GITHUB_RUN_ID" --resource-group "$RESOURCE_GROUP" --template-file infra/azure/private-knowledge-source-manifest-job.bicep --parameters environmentId="$ENVIRONMENT_ID" identityId="$IDENTITY_ID" registryServer=salcapadevb48224acr.azurecr.io imageDigest="$EXPECTED_IMAGE" managedIdentityClientId="$IDENTITY_CLIENT_ID" tenantId="$(env_value SALUS_OIDC_TENANT_ID)" applicationClientId="$(env_value SALUS_OIDC_CLIENT_ID)" driveId="$(env_value SALUS_M365_INTAKE_DRIVE_ID)" folderItemId="$(env_value SALUS_M365_INTAKE_FOLDER_ITEM_ID)" postgresHost="$(env_value SALUS_POSTGRES_HOST)" postgresDatabase="$(env_value SALUS_POSTGRES_DATABASE)" postgresUser="$(env_value SALUS_POSTGRES_USER)" postgresSslMode="$(env_value SALUS_POSTGRES_SSLMODE)" acceptanceScriptBase64="$SCRIPT_B64" --output none --only-show-errors 2>/tmp/private-manifest-deployment-error.txt
+          EXECUTION_NAME="$(az containerapp job start --resource-group "$RESOURCE_GROUP" --name "$JOB" --query name --output tsv --only-show-errors 2>/tmp/private-manifest-start-error.txt || true)"
+          if [ -z "$EXECUTION_NAME" ]; then
+            python tools/knowledge_inventory_azure_transport.py discover --url "$BASE/jobs/$JOB/executions?api-version=2025-07-01" --output /tmp/private-manifest-execution-name.txt
+            EXECUTION_NAME="$(cat /tmp/private-manifest-execution-name.txt)"
+          fi
+          test -n "$EXECUTION_NAME"
+          echo "$EXECUTION_NAME" > /tmp/private-manifest-execution-name.txt
+          WAIT_OK=1
+          python tools/knowledge_inventory_azure_transport.py wait-execution --url "$BASE/jobs/$JOB/executions/$EXECUTION_NAME?api-version=2025-07-01" --seconds 930 --output /tmp/private-manifest-terminal.json || WAIT_OK=0
+          az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB" --execution "$EXECUTION_NAME" --container salcapa-private-manifest --tail 300 --format text --only-show-errors > /tmp/private-manifest-console.log 2>/tmp/private-manifest-console-error.txt
+          python - <<'PY'
+          import pathlib,re
+          rows={}
+          for line in pathlib.Path('/tmp/private-manifest-console.log').read_text().splitlines():
+              m=re.search(r'(PRIVATE_MANIFEST_[A-Z0-9_]+)=([a-zA-Z0-9_-]+)\s*$',line)
+              if m:
+                  key,value=m.groups()
+                  assert key not in rows or rows[key]==value,'Conflicting completion markers'
+                  rows[key]=value
+          expected={'RETAINED':'1','OWNER_ONLY_VERIFIED':'1','SOURCE_CONTENT_EXPORTED':'0','PUBLIC_ARTIFACT_CREATED':'0','PROTECTED_CONTROLS_UNCHANGED':'1','COMPLETE':'1'}
+          for key,value in expected.items():assert rows.get('PRIVATE_MANIFEST_'+key)==value,'Private manifest not verified'
+          assert re.fullmatch('[a-f0-9]{64}',rows.get('PRIVATE_MANIFEST_ENCRYPTED_SHA256',''))
+          assert 0<int(rows['PRIVATE_MANIFEST_ENCRYPTED_BYTES'])<=3200000
+          for key in sorted(rows):
+              if key in {'PRIVATE_MANIFEST_'+k for k in expected}|{'PRIVATE_MANIFEST_ENCRYPTED_SHA256','PRIVATE_MANIFEST_ENCRYPTED_BYTES'}:print(key+'='+rows[key])
+          PY
+          test "$WAIT_OK" = 1
+      - name: Verify unchanged application and worker; remove only the owned isolated job
+        if: always()
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          set -euo pipefail
+          if [ "${PRIVATE_MANIFEST_NAMESPACE_CLEAR:-0}" != 1 ]; then exit 0; fi
+          test "$RESOURCE_GROUP" = rg-salcapa-dev
+          BASE="https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App"
+          JOB=salcapa-private-manifest-b48224
+          RUNTIME_OK=1
+          if (
+            set -euo pipefail
+            python tools/knowledge_inventory_azure_transport.py get --url "$BASE/containerApps/salcapa-dev-b48224?api-version=2025-07-01" --output /tmp/private-manifest-app-after.json
+            python tools/knowledge_inventory_azure_transport.py get --url "$BASE/jobs/salcapa-dev-b48224-kb-scan?api-version=2025-07-01" --output /tmp/private-manifest-worker-after.json
+            for KIND in app worker; do
+              jq -S '{identity,template:.properties.template,configuration:.properties.configuration}' "/tmp/private-manifest-$KIND-before.json" > /tmp/private-manifest-config-before.json
+              jq -S '{identity,template:.properties.template,configuration:.properties.configuration}' "/tmp/private-manifest-$KIND-after.json" > /tmp/private-manifest-config-after.json
+              cmp -s /tmp/private-manifest-config-before.json /tmp/private-manifest-config-after.json
+            done
+          ); then echo PRIVATE_MANIFEST_RUNTIME_UNCHANGED=1; else RUNTIME_OK=0; echo PRIVATE_MANIFEST_RUNTIME_UNCHANGED=0; fi
+          python tools/knowledge_inventory_azure_transport.py get --url "$BASE/jobs/$JOB?api-version=2025-07-01" --allow-missing --output /tmp/private-manifest-job-cleanup.json
+          if [ "$(cat /tmp/private-manifest-job-cleanup.json)" != null ]; then
+            test "$(jq -r .tags.salusTaskKey /tmp/private-manifest-job-cleanup.json)" = salus-private-source-reconciliation-20261123
+            test "$(jq -r .properties.template.containers[0].image /tmp/private-manifest-job-cleanup.json)" = "$(jq -r .execution_image_digest deploy/azure/activations/private-knowledge-source-manifest-20261123.json)"
+            az containerapp job delete --resource-group "$RESOURCE_GROUP" --name "$JOB" --yes --only-show-errors > /tmp/private-manifest-delete.txt 2>/tmp/private-manifest-delete-error.txt
+          fi
+          python tools/knowledge_inventory_azure_transport.py absent --url "$BASE/jobs?api-version=2025-07-01" --name "$JOB"
+          echo PRIVATE_MANIFEST_ISOLATED_JOB_REMOVED=1
+          test "$RUNTIME_OK" = 1
