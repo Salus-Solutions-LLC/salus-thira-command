@@ -1,5 +1,9 @@
 # Salus Solutions — Current Handoff
 
+## 22 November 2026 — Review history requirement candidate
+
+The owner directed SAL-D151 and its immediate private application. The amendment records real personnel/Investigator review counts, exact scope and version, overlap, source-decision separation, historical-approval limits, and separate automated assurance. Local checker/tests validate records only. No Protected Member details enter the repository. Enterprise promotion requires checked exact-revision authorization; no deployment, access, reader activation or sending. PR #1304 was already merged at 372987480bba924e3d1de6f47d64aeb4d9af8dfa; its clock remains unchanged.
+
 ## 22 November 2026 — 24 hour assessment delivery requirement candidate
 
 The owner directed SAL-D150 / SALUS-ASSESSMENT-24H-001 and immediate private application. This candidate adds an immutable wall-clock deadline, phased capacity plan, source inventory/material-gap reconciliation, coherent batches before report generation, preserved qualification and eight substantive plus terminal editorial reviews, exact-file/worksheet acceptance, and separate time, quality and release states. Existing assessments retain historical delay and a recorded transition exception. Unavailable evidence cannot be relabeled complete to meet time. Local checker/tests validate records only; no unattended runtime or universal 24-hour performance claim.
