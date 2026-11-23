@@ -36,6 +36,10 @@ explicit task-specific resolution. A generated index is not evidence of review.
 
 ## Task and evidence fields
 
+### Assessment review wait and feedback
+
+Apply SAL-D153 / SALUS-ASSESSMENT-REVIEW-STOP-001 in `SALUS_INTEGRATED_ASSESSMENT_PRODUCTION_AND_REPORT_STRUCTURE_STANDARD.md`. Retain the exact preserved package and verification references, open gates and their decision effects, the next material input and owner, expected benefit versus effort/cost/delay, original clock and actual pause/resume authority in the existing private task record. Pause optional refinement at diminishing returns; do not label pending source or acceptance work complete. Reuse unchanged verified evidence and recheck affected work after consolidated authorized feedback. No second recommendation register, routine human compliance approval, automatic monitoring, spending, sending or reader activation is created. The generic coverage index accounts for this requirement; it does not automatically judge the truth of a stopping rationale or enforce pauses across platforms.
+
 ### Research entry for an assessment
 
 Classify the assessment with `--task-type assessment` at initialization. Its

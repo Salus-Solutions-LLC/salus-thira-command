@@ -1,5 +1,11 @@
 # Salus Solutions — Current Handoff
 
+## 23 November 2026 — Assessment review stopping and feedback requirement candidate
+
+The owner directed making the diminishing-returns lesson a Charter requirement and incorporating it into the redesigned assessment process. SAL-D153 / SALUS-ASSESSMENT-REVIEW-STOP-001 adds a mandatory consolidated checkpoint, a bounded review-wait account, preservation of exact verified work and open items, and dependency-based resumption after consolidated authorized Protected Member feedback. Repetitive checks, report regeneration and version increments require a material reason. Existing source qualification, mandatory reviews, all-page acceptance, the original 24-hour clock and separate human issue/protected-action authority remain in force. Waiting does not establish completion or waive a gate.
+
+This is a member-neutral policy implementation candidate prepared from governed head a9420938b9d753856f909f0134bd552c519cb4e3. It contains no Protected Member evidence or report binaries. Update the canonical authority index and run the relevant existing governance checks before returning the exact revision for protected publication/promotion as required. No new software enforcement or template migration is claimed. Current engagement instructions remain paused assessment, disabled reader and no external sending; this amendment does not resume research, alter runtime or authorize spending.
+
 ## 23 November 2026 09:14 CST — Weekly governed OSINT source expansion merged
 
 The weekly member-neutral discovery run began from exact governed head `44521a45d19669d1470e2f796f789d98dc0ea02b`. Full-register reconciliation confirmed the correct pre-run authoritative total was **201 unique addresses**, including the later clinic/outpatient section; the earlier 126 figure covered only the core global tables. The run screened worldwide health, humanitarian and economic data/API routes plus member-neutral governance, internal-control, audit-quality, assessment, exercise-evaluation, evidence-reliability, plain-language and evaluation-method topics derived from new Salus work.
