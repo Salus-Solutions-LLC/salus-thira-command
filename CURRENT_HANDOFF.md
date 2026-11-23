@@ -5973,3 +5973,9 @@ A retention-only correction prepares safe marker collection before success valid
 ## Assessment process and report structure amendment 23 November 2026
 
 Owner authorized the redesigned integrated assessment process, distinct four-report outlines and private application. The member-neutral standard and coordinated Charter/decision/method/startup/artifact changes are prepared locally against commit 7481bd90765e7b825d9240e6fe737b9ca3827f4f. No new production deployment, public publication or governed promotion is claimed. Source qualification, original timing and release gates remain separate. Reader controls are unchanged; no external distribution is authorized.
+
+## Assessment redesign authority coverage correction - 23 November 2026
+
+Draft PR #1311 retains the owner-authorized member-neutral process and report amendment. Its control check rejected the stale generated authority register. Regenerated governance/charter_task_requirements_register.json with the existing generator: 48 sources and 4037 units, retaining all 3989 previous unit identities; 48 units added and no units lost. The two unexpanded references remain explicit. No gate or generator was weakened.
+
+The current-authority check and 148 tests across the five control suites pass locally. Remote revised checks remain to be observed; no merge, deployment, reader activation or external distribution is authorized. The revised exact head must be returned for owner approval before promotion. This mechanical coverage record does not establish task-level Charter acceptance or source qualification.
