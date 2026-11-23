@@ -10,7 +10,7 @@
   ],
   "sources": {
     "AGENTS.md": "f75ab622835eb71151eadb1cf5ca65207f488d200cdb15c68afca75b0fbea6ae",
-    "APPROVED_ARTIFACTS.md": "64f8e857c6e10024bd84fdf05539bc303cb81b5174af654b7708d0e5fb318b8d",
+    "APPROVED_ARTIFACTS.md": "12f932ac6bf2f3e47574b151ef6eb8a8ab9497c2b7e86ea6fdc9cb28af9541fe",
     "SALUS_24_HOUR_ASSESSMENT_DELIVERY_STANDARD.md": "26fecc30ee185cb7336f392e0fbf3f08c47b82f33d64ffb78db0be2a40cd0122",
     "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md": "e10ad8bbf42c6af6d2e701c886a9ba03b8a3c947610d737990b42931a7a4e3c8",
     "SALUS_ASSESSMENT_LESSONS_AND_PREVENTION_STANDARD.md": "ee174e991dce2b5af45c1ad11a157ab65375e270bc8fc1a065185c877ecbb64f",
@@ -51,6 +51,7 @@
     "docs/charter-task-compliance.md": "1c0c4ca8782b46cf245805c2695739e33fb3a4af697b5a2bd4641d0cb0d0a95b",
     "docs/package_quote_authorization_contract.md": "fc9e9d11e3f07afb2857793608aeceae2e13316db9416c9797b3a48242d24410",
     "docs/persistent-assessment-worker.md": "601dc1a7e598b20b417fcaeeccd88776fee7ccca7b537738cf7ae020eecbe87f",
+    "docs/private-knowledge-source-manifest-20261123.md": "720ff79ab4a5ed07722deed17b041dc6173fb9bea252cd1bd3a4c84bf0223d15",
     "proposals/SALD055_LEVEL_SERVICE_AND_COMMERCIAL_COPY_CANDIDATE_20260928.md": "5f61de51a9338596909c5226938d1de8bd211628c85b930d298c82b4ed84f191",
     "proposals/SALINTEL_FACILITIES_AND_POI_MODULE_SCOPE_20261002.md": "7b53a1273097454fcdee8cc4e0bfac1b4ee313c085ac906dc56e8596cc658c82",
     "proposals/SALUS_LEVEL_PACKAGE_BUSINESS_MODEL_CANDIDATE_20260929.md": "8ba9e5fb4c83317668e2c20c95b82f85f2c02bb7962332bed1a6184c12d38ca0",
@@ -1226,6 +1227,22 @@
       "line": 145,
       "section": "Salus Solutions — Approved Artifact Register / Controlled assessment redesign candidate 23 November 2026",
       "text_sha256": "688c3bf0804ba6c72067b874285f91632ef4dc7da26960db849180eec7c77554",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-0f1d10fd82cf47136c6af79e",
+      "source": "APPROVED_ARTIFACTS.md",
+      "line": 148,
+      "section": "Salus Solutions — Approved Artifact Register / Local candidate — private source manifest review — 23 November 2026",
+      "text_sha256": "15e85d4dd1241703710a8666b43db4cb8e612450b3f2dbe4ae51165b3c2c20ab",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7e975a83d233d2f2f96e66dc",
+      "source": "APPROVED_ARTIFACTS.md",
+      "line": 150,
+      "section": "Salus Solutions — Approved Artifact Register / Local candidate — private source manifest review — 23 November 2026",
+      "text_sha256": "6e34ff654ba2f720325514e45a9f628ccbe6d924a53e7579892732600a479686",
       "decision_ids": []
     },
     {
@@ -29463,6 +29480,86 @@
       "decision_ids": []
     },
     {
+      "id": "REQ-c088a8eb15a8f28c00abc591",
+      "source": "docs/private-knowledge-source-manifest-20261123.md",
+      "line": 1,
+      "section": "Proposed private Knowledge source manifest",
+      "text_sha256": "d1b46f4af330a99011999d5fd8e27e6c35342979df28a21ad46f8fb316e3d63d",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-bc9ebf0062cd01199107b008",
+      "source": "docs/private-knowledge-source-manifest-20261123.md",
+      "line": 3,
+      "section": "Proposed private Knowledge source manifest",
+      "text_sha256": "51be98faa0e12bf6699206d49f8d031ec49bd3dec1f1dfb4906e64179b4438bd",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-41fe2b7108e8fb9f05e24fa9",
+      "source": "docs/private-knowledge-source-manifest-20261123.md",
+      "line": 5,
+      "section": "Proposed private Knowledge source manifest",
+      "text_sha256": "00bd194b131100ab4c580af7396e04d0dcda560b8142841e11a29d0ed63ef6d8",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-2ce67d7229c6e0194b14337a",
+      "source": "docs/private-knowledge-source-manifest-20261123.md",
+      "line": 7,
+      "section": "Proposed private Knowledge source manifest",
+      "text_sha256": "958c570961dd2ba56fd026d6abd6ed37290b17377e4fb3c3db3cfec381ebe82e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-5f053e23287255b3000bd775",
+      "source": "docs/private-knowledge-source-manifest-20261123.md",
+      "line": 9,
+      "section": "Proposed private Knowledge source manifest",
+      "text_sha256": "e5686901a2b579ff31824fe2ad1c05a035dff5f2f55995cfe34e1733487d1a8f",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-f0b3c06fe4ace3ce032da190",
+      "source": "docs/private-knowledge-source-manifest-20261123.md",
+      "line": 11,
+      "section": "Proposed private Knowledge source manifest",
+      "text_sha256": "c2640821a96767cb6cfe84f1b5065b48adeddf6f5e6f67bf1d4d5f228cac6424",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4dd10536eba36579e10734b1",
+      "source": "docs/private-knowledge-source-manifest-20261123.md",
+      "line": 13,
+      "section": "Proposed private Knowledge source manifest",
+      "text_sha256": "b2b47580f9aae625a5de4e1e280d9fb4e6a010297093b6ebd69933551ef17590",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-02920709145cc446b335d7dc",
+      "source": "docs/private-knowledge-source-manifest-20261123.md",
+      "line": 15,
+      "section": "Proposed private Knowledge source manifest",
+      "text_sha256": "5f4f44f549c6647baf98fc67a1a9fc1c06dea1d579427d6d54b862f28b0a8ed3",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-7cbfdd8ebd29abb265d54241",
+      "source": "docs/private-knowledge-source-manifest-20261123.md",
+      "line": 17,
+      "section": "Proposed private Knowledge source manifest",
+      "text_sha256": "1ddff4050199340ac68d95b07629e2cba794488fb220c4d01f5bbb9b12655b6e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-dc1c12c792a0809d1719b750",
+      "source": "docs/private-knowledge-source-manifest-20261123.md",
+      "line": 19,
+      "section": "Proposed private Knowledge source manifest",
+      "text_sha256": "c19eaf31dc2431bd90143bec618b6c55b0b85db6248662551a508bc1310e215a",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-4ec5723942c23e5e66faab72",
       "source": "proposals/SALD055_LEVEL_SERVICE_AND_COMMERCIAL_COPY_CANDIDATE_20260928.md",
       "line": 1,
@@ -35097,6 +35194,13 @@
       "state": "indexed"
     },
     {
+      "reference": "docs/private-knowledge-source-manifest-20261123.md",
+      "cited_by": [
+        "APPROVED_ARTIFACTS.md"
+      ],
+      "state": "indexed"
+    },
+    {
       "reference": "proposals/SALD055_LEVEL_SERVICE_AND_COMMERCIAL_COPY_CANDIDATE_20260928.md",
       "cited_by": [
         "SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md"
@@ -35150,5 +35254,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "99797c4b64241e0e0b8cd343ea03412b61517ef9e45f5a6b7c6273a67efb3531"
+  "register_sha256": "46fad21f84b4fc4baa509daad8803d1e36c32c2a90002ef18c8ea1ab1b56ce95"
 }

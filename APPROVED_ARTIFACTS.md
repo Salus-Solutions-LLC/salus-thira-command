@@ -143,3 +143,8 @@ The Program Charter and Decision Register now govern the distinct SalINTEL™ Fa
 ## Controlled assessment redesign candidate 23 November 2026
 
 `SALUS_INTEGRATED_ASSESSMENT_PRODUCTION_AND_REPORT_STRUCTURE_STANDARD.md` records the owner-authorized redesigned process and report outlines. Status: local implementation candidate; exact-revision promotion, template migration, software enforcement and deployment are not established. Member-specific outputs and acceptance evidence remain private.
+
+
+## Local candidate — private source manifest review — 23 November 2026
+
+`docs/private-knowledge-source-manifest-20261123.md`, the associated proposed one-run workflow, isolated-job template, activation and private-manifest helpers/tests are candidate artifacts only. Current base: 113da541d238fb27a77f164c8644d4ff22e06c4e. No public publication, merge, protected run, full-corpus review, source qualification, reader enablement or runtime deployment is accepted. Publication requires specific authorization for this public destination; execution and source use retain their separate gates.

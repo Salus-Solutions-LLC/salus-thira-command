@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "operation": "private_knowledge_source_manifest",
+  "task_key": "salus-private-source-reconciliation-20261123",
+  "target_environment": "dev",
+  "resource_group": "rg-salcapa-dev",
+  "allowed_attempts": 1,
+  "max_execution_seconds": 900,
+  "cpu": 0.25,
+  "memory_gib": 0.5,
+  "replica_retry_limit": 0,
+  "execution_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:4ef49042f0c998e74b04c51affcdc838a7c3ae940d5667553ad33996b2333db9",
+  "expected_runtime_image_digest": "salcapadevb48224acr.azurecr.io/salcapa@sha256:8f5823ef53d08eaa319f8073b00b6d817ab3db5e07b8f55c0dffb72868cd580c",
+  "source_sha256": {
+    "salcapa_knowledge_consideration.py": "96acb49aef9b3a630ab7e16c52d5af855163508d775bfb38fd331056d0d82714",
+    "tools/live_planning_evidence_search.py": "ddea8702a8ab114e9ad6b16f10f1f59efc57687cabd9bb7caac1c51bd1bc10e2",
+    "tools/private_knowledge_manifest.py": "063e8c957564ed8a2f6a2a442b4a06f1c27d82e12b85deeb56fc2b7707e1d863"
+  },
+  "public_key_sha256": "a18f402eecfb26eea18a97f8adad6b9f9650f9381cfd1f7ddf9dd4a8b2165e43",
+  "recipient_public_pem_base64": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQm9qQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FZOEFNSUlCaWdLQ0FZRUFyYVNSKzFoWGRybzc4UTJCZW5EOQpRS2pJWkJ1SnRuSVpCV3pDSDNOQ1d0UTVuTEViTitnOGhGL2RIeHd1aUpTanYrbWRLMVNqazFPNnM3N2MzUFJkCmMrU09pVWJuc3YwNGtLclp4eFR4VlFyc2dSR1FGeXFsZjh0bWd6aE1qemZXb0crZXRBaUtRZEFMVjRTeFYzVjEKSHNURFJCNzY4dDNmaU5OQmNKUDhYenNrQyszTnQ3aUhLdGp0cHFNSlNvSlcvZ05LWHV4WlRhdVFteGJHOWxCZwpaNWZOOG1HS0JiOEF5a1BEQXllUUtYaEpTOXIyWWVpL1l1dXJpblRIdHhRcXNKOFNtdnNNT1lxS3ZUNnlUWEE4ClhBZ3B2TmxXSzhlWnZlTTR4Y2dSazlpT0FSUzRvdEEybTlWS1pVWk5CZGdxdGFBdFhieElDaWpFTUtlbUlpMnAKU2RiM0hRYThlK050NmhubGxOOFNuUGJUVUtOK3R2VU1GeW1GNEtYUUtCS0xRNHRGbk4xdDR3TjNVV1lsYUFHdQp1VklDMFhMV2hSd05SWi8vUURYU3JyMGdvTURyTHUwL2pYRjZCVm9SYURFUVRKL0htelJQQUlkdldha01IOHRJClhBSS96TTE3OVN1aUNPWVNGcUQ5b0szcTErajd1bjJRcHRGWE9nSTZINjNIQWdNQkFBRT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==",
+  "source_root_sha256": "141efd153a289deedb8f8d94fe72ac83877087d03c197a859cf3b2312c937598",
+  "destination_sha256": "5a9dc95b416ecc87bb4fda81de576357e1093bf25353633fd7622f0db4ec098b",
+  "owner_sha256": "a9b81862805bffc6453c8c59f786ba13ada6a4006cc00a95d2855382c46ec1db",
+  "audit_receipt_insert_limit": 4,
+  "private_encrypted_file_create_limit": 1,
+  "source_content_exported": false,
+  "source_permission_changes": false,
+  "reader_activation": false,
+  "processing_or_retry_resume": false,
+  "operational_implementation": false,
+  "public_artifacts": false,
+  "private_retention": "Prebound owner-only folder outside the corpus; exact created encrypted-file byte readback and owner permission checks required",
+  "qualification_or_release_authority": false,
+  "production_deployment_authorized": false,
+  "guarded_source_sha256": {
+    "tools/private_knowledge_manifest.py": "063e8c957564ed8a2f6a2a442b4a06f1c27d82e12b85deeb56fc2b7707e1d863",
+    "tools/private_knowledge_manifest_payload.py": "0f2ba1b2e459fbff619184b64839dd8ad6e2d7a24c63062815d85ae255c3caae",
+    "tests/test_private_knowledge_manifest.py": "5c5af47485b9a61877aad4543a0515c0f3f6e25de5744b946e272e702e1adb75",
+    ".github/workflows/salus-private-source-manifest.yml": "d6e39c6c317790c4965558aa4e3310303b6f1ba40dcae1654363e12a223ff2ad",
+    "infra/azure/private-knowledge-source-manifest-job.bicep": "d0d766e99931c5f1c9eda39eac66db3d113553c73bc6016896525492527aaef2"
+  }
+}
