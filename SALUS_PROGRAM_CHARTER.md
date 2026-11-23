@@ -1,5 +1,9 @@
 # Salus Solutions — Master Program Charter
 
+## Mandatory assessment review history [SAL-D151]
+
+SAL-D151 / SALUS-ASSESSMENT-REVIEW-HISTORY-001 requires a documented review-history statement in every SalCAPA assessment report under `SALUS_ASSESSMENT_REVIEW_HISTORY_STANDARD.md`. Show verified human assessment/report review counts, Salus Investigator participation, other Salus personnel participation, scope, edition and disposition. Identify overlapping roles and confirmed-minimum or unavailable counts. Separate source-review events and decision counts, specialist/reader/issue reviews, and automated substantive/editorial/file checks. Never count software as personnel or infer current approval from a historical review. Retain an exact private event ledger and reconcile all four reports. The count documents process; it does not establish proprietary rights, quality, qualification or release. Preserve the original 24-hour deadline, all existing requirements, disabled readers and no-send controls.
+
 ## Mandatory 24 hour assessment delivery [SALUS-ASSESSMENT-24H-001; SAL-D150]
 
 The Salus owner directed this requirement on 22 November 2026. Every assessment and material reassessment must return its four same-level reports for owner approval within 24 elapsed hours of accepting the authorized instruction, under `SALUS_24_HOUR_ASSESSMENT_DELIVERY_STANDARD.md`. Record the actual start, immutable deadline, capacity, scope, source inventory, material gaps, exact outputs, return time and separate time/quality/release results. Preserve historical elapsed time; a legacy transition deadline never makes an earlier engagement compliant retroactively.

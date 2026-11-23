@@ -1,5 +1,9 @@
 # Salus Solutions — Decision Register
 
+## SAL-D151 — Documented assessment and reporting review history
+
+**Owner direction: 22 November 2026.** SAL-D151 / SALUS-ASSESSMENT-REVIEW-HISTORY-001 requires a documented review-history statement in every SalCAPA assessment report under `SALUS_ASSESSMENT_REVIEW_HISTORY_STANDARD.md`. Show verified human assessment/report review counts, Salus Investigator participation, other Salus personnel participation, scope, edition and disposition. Identify overlapping roles and confirmed-minimum or unavailable counts. Separate source-review events and decision counts, specialist/reader/issue reviews, and automated substantive/editorial/file checks. Never count software as personnel or infer current approval from a historical review. Retain an exact private event ledger and reconcile all four reports. The count documents process; it does not establish proprietary rights, quality, qualification or release. Preserve the original 24-hour deadline, all existing requirements, disabled readers and no-send controls. Enterprise implementation remains candidate until governed exact-revision promotion; immediate private application is authorized.
+
 | ID | Decision | Status |
 |---|---|---|
 | SAL-D001 | GitHub is the authoritative technical source of truth. | Approved |
