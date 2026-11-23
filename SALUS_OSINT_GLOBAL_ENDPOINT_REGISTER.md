@@ -177,7 +177,7 @@ For each in-scope country or area, begin with UN M49 and then screen, as applica
 
 ## 23 November 2026 weekly candidate provenance records
 
-These records document newly discovered candidate endpoints in this run. The current authoritative total is **201 unique addresses**. The 21 new addresses remain **Unvetted Candidate** and pending governed merge; candidate-state total would be **222**.
+These records document newly discovered candidate endpoints in this run. The governed merge for this run raised the authoritative total from **201 to 222 unique addresses**. All 21 new addresses remain **Unvetted Candidate** pending separate human source qualification; no connector or collection activation is implied.
 
 | IDs | Provenance, route and observation | Publisher, reach, languages, formats and cadence | Access, rights, cost, rate and security | Applicability, collection and contradiction handling | Disposition |
 |---|---|---|---|---|---|

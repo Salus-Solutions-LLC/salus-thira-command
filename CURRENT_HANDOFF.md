@@ -1,5 +1,13 @@
 # Salus Solutions — Current Handoff
 
+## 23 November 2026 09:14 CST — Weekly governed OSINT source expansion merged
+
+The weekly member-neutral discovery run began from exact governed head `44521a45d19669d1470e2f796f789d98dc0ea02b`. Full-register reconciliation confirmed the correct pre-run authoritative total was **201 unique addresses**, including the later clinic/outpatient section; the earlier 126 figure covered only the core global tables. The run screened worldwide health, humanitarian and economic data/API routes plus member-neutral governance, internal-control, audit-quality, assessment, exercise-evaluation, evidence-reliability, plain-language and evaluation-method topics derived from new Salus work.
+
+[PR #1306](https://github.com/Salus-Solutions-LLC/salus-thira-command/pull/1306) changed only the Global Endpoint Register, weekly discovery log and regenerated Charter requirements index. All eight repository workflows passed at exact head `17305ca9c0631c06d484ab89d20decb7fb49ab0d`. Under SAL-D140's narrow automatic-merge authority, it was squash-merged as `33709568436d413a0a24f3192d397df832db74c7`. Governed readback confirmed **194 first-occurrence endpoint records and 222 unique addresses**: **21 added, 0 changed, 0 superseded, 0 unavailable, and 0 pending governed merge**.
+
+The 21 additions remain **Unvetted Candidate**. No paid access, credential, API execution, binary download, connector activation, production/deployment change, Protected Member disclosure, Member finding, source qualification or release authority resulted. The UNEG document route returned HTTP 403 and was recorded as an access barrier rather than added. Next proof is bounded country-level discovery and human qualification of exact source content, rights, terms, rates, versions, applicability and contrary evidence before substantive reliance or automation.
+
 ## 22 November 2026 — Review history requirement candidate
 
 The owner directed SAL-D151 and its immediate private application. The amendment records real personnel/Investigator review counts, exact scope and version, overlap, source-decision separation, historical-approval limits, and separate automated assurance. Local checker/tests validate records only. No Protected Member details enter the repository. Enterprise promotion requires checked exact-revision authorization; no deployment, access, reader activation or sending. PR #1304 was already merged at 372987480bba924e3d1de6f47d64aeb4d9af8dfa; its clock remains unchanged.
