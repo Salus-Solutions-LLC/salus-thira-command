@@ -139,3 +139,7 @@ The Program Charter and Decision Register now govern the distinct SalINTEL™ Fa
 ## 24 hour assessment delivery requirement
 
 `SALUS_24_HOUR_ASSESSMENT_DELIVERY_STANDARD.md`, SAL-D150 / SALUS-ASSESSMENT-24H-001, implements the owner's 22 November 2026 direction. Member-neutral controlled implementation candidate pending checked exact-revision promotion; immediate authorized private workflow use is separate. `tools/assessment_delivery_window.py` checks clock/record consistency only; its passing tests do not establish substantive quality, source qualification, real delivery or unattended execution. Existing templates/generators require recorded impact review; no universal remediation is claimed.
+
+## Controlled assessment redesign candidate 23 November 2026
+
+`SALUS_INTEGRATED_ASSESSMENT_PRODUCTION_AND_REPORT_STRUCTURE_STANDARD.md` records the owner-authorized redesigned process and report outlines. Status: local implementation candidate; exact-revision promotion, template migration, software enforcement and deployment are not established. Member-specific outputs and acceptance evidence remain private.
