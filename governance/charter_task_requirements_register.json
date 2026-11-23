@@ -29,7 +29,7 @@
     "SALUS_INTEGRATED_OPERATIONAL_LEGAL_FINANCIAL_REVIEW_STANDARD.md": "9b83cf6177e1c54a530aa005a0da0dbddb1fc1fd17ed99c9f24ee1ab3ae35f56",
     "SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md": "bb828e2ad5ce9c9d6aefbb0498660da1f22f3ae5703bc114d0c2274f4a28c914",
     "SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md": "b11d27e9885f0490f8ea4e21a049d46ab874daab5f77ee2d2334332199b3dab5",
-    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "b32505330157d13fb9fa694dc96c1b4aec7a980150906b2b0328beb54d56c7d8",
+    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "81b9280c5a1fa26fe6defe75c4a7f8edd056cb3e012d65cddf0768e7ebc506b2",
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
     "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "77b6b08ddde46a39fe9293fba3a8e686129f3788791310f59a5668cd42a5f681",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
@@ -10078,11 +10078,11 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-5f318ff57ef4da8df7b4dfac",
+      "id": "REQ-5993cd58d3cd8b260a36c99b",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
       "line": 3,
       "section": "Salus OSINT Global Endpoint Register",
-      "text_sha256": "4cb53f3b0c6a851e937262b684ed03e5524d890747d347275dffdf39beeb1bb9",
+      "text_sha256": "987fc2d4a3fd3bd1981d2ee1f57f68c79283043b802627b561622f48d8a9eb93",
       "decision_ids": [
         "SAL-D120",
         "SAL-D121",
@@ -35440,5 +35440,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "9e4dd437702adc371a2058adad3ecad1c1cace6883509b50921bf60571c7ebb0"
+  "register_sha256": "de0ce42afdc6e6a8c03ced2239bdf0682f99e1d1a73056473017de744b214948"
 }
