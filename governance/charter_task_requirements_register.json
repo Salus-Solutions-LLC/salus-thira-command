@@ -31,7 +31,7 @@
     "SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md": "b11d27e9885f0490f8ea4e21a049d46ab874daab5f77ee2d2334332199b3dab5",
     "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "81b9280c5a1fa26fe6defe75c4a7f8edd056cb3e012d65cddf0768e7ebc506b2",
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
-    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "77b6b08ddde46a39fe9293fba3a8e686129f3788791310f59a5668cd42a5f681",
+    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "d96ddd5b116d371e0268f16067376eaeda38bac7de2c1d4df3a7e185de940caf",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
     "SALUS_PROGRAM_CHARTER.md": "79260868de181cb198d69c6a24bc36c66dd60ccb49aa9bead808aae87f4ea5f5",
     "SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md": "eae8197bf57b7a8a561b7ddbe1d68b70d55167738dbb260255281e1f23fc89fc",
@@ -13680,6 +13680,32 @@
       "decision_ids": [
         "SAL-D140"
       ]
+    },
+    {
+      "id": "REQ-8d40d1f9ed9e6a51fa3aca94",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 95,
+      "section": "Salus OSINT Weekly Discovery Log / Verified closeout of planning source indexing - 23 November 2026",
+      "text_sha256": "cd90201cada33802fcb2eb0e386ea3e3a9f07e17ffbc43d337b32749a8be8047",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-2a0980a9722a112d441f74cf",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 97,
+      "section": "Salus OSINT Weekly Discovery Log / Verified closeout of planning source indexing - 23 November 2026",
+      "text_sha256": "2940bef479d602364a837a64da2fcf496a2721e83d26cb6b658682d65a5552e2",
+      "decision_ids": [
+        "SAL-D140"
+      ]
+    },
+    {
+      "id": "REQ-f2902e6585864537f74b7b6f",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 99,
+      "section": "Salus OSINT Weekly Discovery Log / Verified closeout of planning source indexing - 23 November 2026",
+      "text_sha256": "2b8e9c9a4f93bfbecc40a943f071332b58d3c71a6a4c322f488c5a8a0829ea26",
+      "decision_ids": []
     },
     {
       "id": "REQ-20437102cecee7c7e772f4b2",
@@ -35440,5 +35466,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "de0ce42afdc6e6a8c03ced2239bdf0682f99e1d1a73056473017de744b214948"
+  "register_sha256": "46dac93bc2663ba36fe26eaa4b7c574aabbdc0e98149be36760217af2f2a1b2e"
 }
