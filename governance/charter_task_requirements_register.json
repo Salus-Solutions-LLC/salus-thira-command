@@ -28,9 +28,9 @@
     "SALUS_INTEGRATED_OPERATIONAL_LEGAL_FINANCIAL_REVIEW_STANDARD.md": "9b83cf6177e1c54a530aa005a0da0dbddb1fc1fd17ed99c9f24ee1ab3ae35f56",
     "SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md": "bb828e2ad5ce9c9d6aefbb0498660da1f22f3ae5703bc114d0c2274f4a28c914",
     "SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md": "b11d27e9885f0490f8ea4e21a049d46ab874daab5f77ee2d2334332199b3dab5",
-    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "9e9dd3ba6d103eb7076d1f109984a913a7236b93c2732786f58bee256ce34fe6",
+    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "6438a13bf0b12438037faa0c641bd32433574774cdcb9f910c4f0edbb081ca53",
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
-    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "cc6b66a367c33901bc6f39a2c3ee1bb5ea5fe4ac9c8574747cc2f7c741c21ecd",
+    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "2e8d11103de1eed138458f22a3a50432344da607c7a01d8ef0a8c2fffe5ab0f1",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
     "SALUS_PROGRAM_CHARTER.md": "800a638be61fe5e6485454e295065bca106775456abbf47e5972d53c00367023",
     "SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md": "27c9b6311a5fc7033c198cfc032c4cced6443f4fa164ca75fff1e74cfbfabb55",
@@ -10957,11 +10957,11 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-1f8df51d7ab8b58406ad0c93",
+      "id": "REQ-f6c31738e2ae0361dc280cde",
       "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
       "line": 180,
       "section": "Salus OSINT Global Endpoint Register / 23 November 2026 weekly candidate provenance records",
-      "text_sha256": "1050fb999af8f61717533c3f83f2318e4f74722e6c7a2768728f7d9cd29933a0",
+      "text_sha256": "d80e21ea8c0e8ff56d414939a536998ebf3cfcebbbebdd4680579ec5dbe2e796",
       "decision_ids": []
     },
     {
@@ -12745,12 +12745,14 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-4c8b7db252258d39a3b27c10",
+      "id": "REQ-b81d2aec293a64ec23180329",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
       "line": 33,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries",
-      "text_sha256": "3e67f65330f6cf1e6e8a59f65bb00f84d1efea665bdf488f267362c21ee1d419",
-      "decision_ids": []
+      "text_sha256": "f9e8dc03cb1d0fad37c1731bc1975f9e23a69d18f450227c7dbef202b3a2b5e9",
+      "decision_ids": [
+        "SAL-D140"
+      ]
     },
     {
       "id": "REQ-8f540e42c0cef21005ed5409",
@@ -12811,12 +12813,14 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-8068c494c4ee8cb667335db8",
+      "id": "REQ-61e6a192e846dd24f0c06757",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
       "line": 43,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-23-W01 supporting evidence",
-      "text_sha256": "ea9f586e0c6351e80252c8992aed898bc0a492476b72c9c7fdb9337d86849550",
-      "decision_ids": []
+      "text_sha256": "ac78d3f39bc41d2f01612d34402066b69cc877e1218fbbe40492b77a0d2eff93",
+      "decision_ids": [
+        "SAL-D140"
+      ]
     },
     {
       "id": "REQ-4f7fc564026595f292d53d0a",
@@ -12835,11 +12839,11 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-3409ef83ec35cd6ae2adf266",
+      "id": "REQ-14f9ee8f60bd1822bb506a80",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
       "line": 46,
       "section": "Salus OSINT Weekly Discovery Log / Weekly run entries / 2026-11-23-W01 supporting evidence",
-      "text_sha256": "119c64920324d6e58297b67753c539719e9592c067b9c1e31afaee88a3e1315a",
+      "text_sha256": "7f7bbc2eb23498d48ea0dc70057d1832ddded5e5b7f104ff07cde2f23f8d498f",
       "decision_ids": []
     },
     {
@@ -13013,11 +13017,11 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-0941ddfcd2fe763ae1eb13f6",
+      "id": "REQ-f19edc031b54295975c848c6",
       "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
       "line": 75,
       "section": "Salus OSINT Weekly Discovery Log / Work-triggered topic-expansion queue",
-      "text_sha256": "5ee152b5e9a5cf7ee51685287ab47a7a4b5754593f4af60726afe211a4f24a32",
+      "text_sha256": "6a80b28331db6df42cbc8762a631fe9773f8c474bc3a4235fc53022e4a81eb76",
       "decision_ids": []
     },
     {
@@ -34723,5 +34727,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "443a196730ce93627aabfe0d802122e1af0d75da476ed8e7f7f7498fa039dfaa"
+  "register_sha256": "da88c8dc3e68234da313517b8e981814d01aab266c38954549a3d49e9a605018"
 }
