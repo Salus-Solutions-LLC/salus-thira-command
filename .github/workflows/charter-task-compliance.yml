@@ -20,6 +20,8 @@ jobs:
         run: python tools/ci_charter_task_compliance.py
       - name: Verify positive and adverse control behavior
         run: python -m unittest discover -s tests -p test_charter_task_compliance.py -v
+      - name: Verify independent source snapshot times and unchanged coverage gates
+        run: python -m unittest discover -s tests -p test_location_snapshot_times.py -v
       - name: Verify assessment delivery clock and quality separation
         run: python -m unittest discover -s tools -p test_assessment_delivery_window.py -v
       - name: Verify review event counts and human automation separation

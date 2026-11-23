@@ -1,5 +1,10 @@
 # SalINTEL and SalTHIRA Controlled Method and Report Standard
 
+## Integrated assessment production and report structure [proposed SAL-D152]
+
+Owner direction received 23 November 2026. Adopt SALUS-ASSESSMENT-STRUCTURE-001 in `SALUS_INTEGRATED_ASSESSMENT_PRODUCTION_AND_REPORT_STRUCTURE_STANDARD.md`: one controlled analytical record, six production stages, substantial source batches, dependency-based revision, explicit research stopping criteria, the original 24-hour clock, eight distinct substantive re-passes and a terminal editorial/format pass. Require decision-first/main-analysis/supporting-appendix reading depths and distinct outlines for SalCAPA, SalINTEL, SalTHIRA and SalOPS. Preserve findings, source qualification, rights, five mission areas, the approved six-step method, required capability screens, financial controls, formatting and human release. Presentation objectives remain required; select proportionate representations with recorded applicability rather than repeating every graphic. Immediate private application is authorized; this exact repository implementation awaits governed promotion. No sending, reader activation, access expansion or deployment follows.
+
+
 **Status:** Approved enterprise method and report-template structure, effective 27 September 2026 (SAL-D044); multidisciplinary assurance amendment approved 28 September 2026 (SAL-D050); organizational-health method approved 28 September 2026 (SAL-D051); analytical assumptions-to-action amendment approved 28 September 2026 (SAL-D055).  
 **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential.  
 **Applies to:** Level 1, Level 2 and Level 3 work under the Program Charter. This record governs method and reusable structure; it does not approve a Protected Member finding, a price, operational task, software release, or report issue.

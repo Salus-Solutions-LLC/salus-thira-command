@@ -1,5 +1,10 @@
 # Salus 24 Hour Assessment Standard
 
+## Integrated assessment production and report structure [proposed SAL-D152]
+
+Owner direction received 23 November 2026. Adopt SALUS-ASSESSMENT-STRUCTURE-001 in `SALUS_INTEGRATED_ASSESSMENT_PRODUCTION_AND_REPORT_STRUCTURE_STANDARD.md`: one controlled analytical record, six production stages, substantial source batches, dependency-based revision, explicit research stopping criteria, the original 24-hour clock, eight distinct substantive re-passes and a terminal editorial/format pass. Require decision-first/main-analysis/supporting-appendix reading depths and distinct outlines for SalCAPA, SalINTEL, SalTHIRA and SalOPS. Preserve findings, source qualification, rights, five mission areas, the approved six-step method, required capability screens, financial controls, formatting and human release. Presentation objectives remain required; select proportionate representations with recorded applicability rather than repeating every graphic. Immediate private application is authorized; this exact repository implementation awaits governed promotion. No sending, reader activation, access expansion or deployment follows.
+
+
 ## Authority and scope
 
 SALUS-ASSESSMENT-24H-001 / SAL-D150. The Salus owner directed this requirement on 22 November 2026 and authorized immediate application to the existing private assessment. This exact repository implementation is a candidate pending governed promotion. Apply to every new assessment, material reassessment and its four same-level reports. Preserve the authorized decision unit, level and full quality requirements; do not subdivide work or narrow the scope merely to hide a deadline breach.

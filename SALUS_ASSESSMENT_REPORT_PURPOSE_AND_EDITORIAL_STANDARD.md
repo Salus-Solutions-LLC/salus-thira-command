@@ -1,5 +1,10 @@
 # Salus Assessment Report Purpose and Editorial Standard
 
+## Integrated assessment production and report structure [proposed SAL-D152]
+
+Owner direction received 23 November 2026. Adopt SALUS-ASSESSMENT-STRUCTURE-001 in `SALUS_INTEGRATED_ASSESSMENT_PRODUCTION_AND_REPORT_STRUCTURE_STANDARD.md`: one controlled analytical record, six production stages, substantial source batches, dependency-based revision, explicit research stopping criteria, the original 24-hour clock, eight distinct substantive re-passes and a terminal editorial/format pass. Require decision-first/main-analysis/supporting-appendix reading depths and distinct outlines for SalCAPA, SalINTEL, SalTHIRA and SalOPS. Preserve findings, source qualification, rights, five mission areas, the approved six-step method, required capability screens, financial controls, formatting and human release. Presentation objectives remain required; select proportionate representations with recorded applicability rather than repeating every graphic. Immediate private application is authorized; this exact repository implementation awaits governed promotion. No sending, reader activation, access expansion or deployment follows.
+
+
 **Requirement:** SALUS-REPORT-CLARITY-001 / SAL-D136.
 **Owner:** Salus Solutions. **Handling:** Salus Internal Confidential.
 **Authority:** Marc directed on 15 November 2026 that the results of the authorized four-report editorial revision become the requirement and standard for all Salus assessments and be incorporated in the Charter. Repository incorporation follows governed validation and merge. The requirement does not issue a report, approve a finding, restart a paused engagement, activate a reader, authorize operations or deploy enforcement.
