@@ -8,6 +8,8 @@ on:
       - 'tools/live_planning_evidence_search.py'
       - 'tests/test_task_knowledge_consideration.py'
       - 'tests/test_planning_evidence_controls.py'
+      - 'tools/planning_failure_evidence.py'
+      - 'tests/test_planning_failure_evidence.py'
       - 'deploy/azure/activations/planning-evidence-search-20261123.json'
   push:
     branches: [development/salcapa-platform]
@@ -67,6 +69,7 @@ jobs:
           print("task-search workflow syntax and activation binding passed")
           PY
       - run: python -m unittest discover -s tests -p test_planning_evidence_controls.py -v
+      - run: python -m unittest discover -s tests -p test_planning_failure_evidence.py -v
       - run: az bicep build --file infra/azure/planning-evidence-search-job.bicep --stdout > /tmp/knowledge-task-search.json
 
   authorize_scoped:
@@ -176,6 +179,8 @@ jobs:
           az containerapp job logs show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" \
             --execution "$EXECUTION_NAME" --container salcapa-task-search \
             --tail 200 --format text --only-show-errors > /tmp/task-knowledge-search.log 2>&1
+          python tools/planning_failure_evidence.py markers --input /tmp/task-knowledge-search.log \
+            --output /tmp/planning-audit/markers.json
           python - <<'PY'
           import pathlib, re
           lines = pathlib.Path("/tmp/task-knowledge-search.log").read_text().splitlines()
@@ -211,20 +216,23 @@ jobs:
           if [ "${TASK_JOB_NAMESPACE_CLEAR:-0}" != "1" ]; then exit 0; fi
           az account show --only-show-errors >/dev/null
           RUNTIME_OK=1
-          if (
+          if ! (
             set -euo pipefail
             az containerapp show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224 --output json > /tmp/task-search-app-after.json
             az containerapp job show --resource-group "$RESOURCE_GROUP" --name salcapa-dev-b48224-kb-scan --output json > /tmp/task-search-worker-after.json
-            for pair in "salcapa-consideration-app task-search-app-after" "salcapa-consideration-worker task-search-worker-after"; do
-              read -r before after <<< "$pair"
-              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$before.json" > /tmp/task-search-before.json
-              jq -S '{identity, template: .properties.template, configuration: .properties.configuration}' "/tmp/$after.json" > /tmp/task-search-after.json
-              cmp /tmp/task-search-before.json /tmp/task-search-after.json
-            done
           ); then
+            RUNTIME_OK=0
+          fi
+          for pair in "app salcapa-consideration-app task-search-app-after" "worker salcapa-consideration-worker task-search-worker-after"; do
+            read -r label before after <<< "$pair"
+            if ! python tools/planning_failure_evidence.py configuration --input "/tmp/$before.json" \
+              --after "/tmp/$after.json" --output "/tmp/planning-audit/$label-configuration.json"; then
+              RUNTIME_OK=0
+            fi
+          done
+          if [ "$RUNTIME_OK" = "1" ]; then
             echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=1"
           else
-            RUNTIME_OK=0
             echo "TASK_KNOWLEDGE_APPLICATION_AND_WORKER_UNCHANGED=0"
           fi
           if az containerapp job show --resource-group "$RESOURCE_GROUP" --name "$JOB_NAME" --output json --only-show-errors > /tmp/task-search-cleanup.json 2>/dev/null; then
@@ -236,3 +244,16 @@ jobs:
             --query "[?name == '$JOB_NAME'] | length(@)" --output tsv --only-show-errors)" = "0"
           echo "TASK_KNOWLEDGE_ISOLATED_JOB_REMOVED=1"
           test "$RUNTIME_OK" = "1"
+      - name: Retain safe markers after success or failure
+        if: always()
+        run: |
+          python tools/planning_failure_evidence.py markers --input /tmp/task-knowledge-search.log \
+            --output /tmp/planning-audit/markers.json
+      - name: Upload safe audit evidence only
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: planning-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/planning-audit/*.json
+          if-no-files-found: error
+          retention-days: 30
