@@ -219,7 +219,6 @@ def run_search(conn, *, source_census_fn, minimum_boundary=1, minimum_represente
     print("TASK_KNOWLEDGE_SOURCE_CENSUS_STABLE=1", flush=True)
     print("TASK_KNOWLEDGE_PROTECTED_MEMBER_ACCESS=0", flush=True)
     print("TASK_KNOWLEDGE_ASSIGNMENT_OR_RELEASE_AUTHORITY=0", flush=True)
-    print("TASK_KNOWLEDGE_COMPLETE=1", flush=True)
     return summaries
 
 
@@ -238,6 +237,22 @@ def protected_source_controls(conn):
     return {"sha256":hashlib.sha256(raw).hexdigest(),"counts":{key:len(rows) for key,rows in result.items()}}
 
 
+def guarded_search(conn, *, source_census_fn):
+    before = protected_source_controls(conn)
+    print("TASK_KNOWLEDGE_PROTECTED_CONTROLS_BEFORE=" + before["sha256"], flush=True)
+    try:
+        results = run_search(conn, source_census_fn=source_census_fn)
+    finally:
+        after = protected_source_controls(conn)
+        print("TASK_KNOWLEDGE_PROTECTED_CONTROLS_AFTER=" + after["sha256"], flush=True)
+        if before != after:
+            raise RuntimeError("Protected source controls changed")
+        print("TASK_KNOWLEDGE_PROTECTED_CONTROLS_UNCHANGED=1", flush=True)
+    # Report completion only after both search and protected-control proof pass.
+    print("TASK_KNOWLEDGE_COMPLETE=1", flush=True)
+    return results
+
+
 def main():
     global STAGE
     if os.getenv("SALUS_DB_BACKEND", "").lower() != "postgres":
@@ -250,16 +265,7 @@ def main():
     try:
         STAGE = "initialize_scoped_source_client"
         intake = GovernedM365Intake(GovernedM365Config.from_environment())
-        before = protected_source_controls(conn)
-        print("TASK_KNOWLEDGE_PROTECTED_CONTROLS_BEFORE=" + before["sha256"], flush=True)
-        try:
-            run_search(conn, source_census_fn=lambda: source_census(intake))
-        finally:
-            after = protected_source_controls(conn)
-            print("TASK_KNOWLEDGE_PROTECTED_CONTROLS_AFTER=" + after["sha256"], flush=True)
-            if before != after:
-                raise RuntimeError("Protected source controls changed")
-            print("TASK_KNOWLEDGE_PROTECTED_CONTROLS_UNCHANGED=1", flush=True)
+        guarded_search(conn, source_census_fn=lambda: source_census(intake))
     except Exception as exc:
         # Do not emit database values, source names, paths, contents or exception
         # details into telemetry. A partial receipt is not a complete task run.

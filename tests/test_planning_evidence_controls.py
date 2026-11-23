@@ -1,7 +1,10 @@
 import sqlite3
 import unittest
+import contextlib
+import io
+from unittest.mock import patch
 
-from tools.live_planning_evidence_search import protected_source_controls
+from tools.live_planning_evidence_search import protected_source_controls, guarded_search
 
 
 class PlanningControlProofTest(unittest.TestCase):
@@ -52,3 +55,28 @@ class PlanningControlProofTest(unittest.TestCase):
         self.conn.execute('DROP TABLE m365_bulk_extraction_checks')
         with self.assertRaises(sqlite3.OperationalError):
             protected_source_controls(self.conn)
+
+    def test_drift_after_search_never_reports_complete(self):
+        def changed(*args,**kwargs):
+            self.conn.execute("DELETE FROM m365_knowledge_holds")
+            return []
+        output=io.StringIO()
+        with patch('tools.live_planning_evidence_search.run_search',side_effect=changed),contextlib.redirect_stdout(output):
+            with self.assertRaisesRegex(RuntimeError,'Protected source controls changed'):
+                guarded_search(self.conn,source_census_fn=lambda:{})
+        self.assertNotIn('TASK_KNOWLEDGE_COMPLETE=1',output.getvalue())
+
+    def test_search_failure_checks_controls_without_completion(self):
+        output=io.StringIO()
+        with patch('tools.live_planning_evidence_search.run_search',side_effect=RuntimeError('missing source')),contextlib.redirect_stdout(output):
+            with self.assertRaisesRegex(RuntimeError,'missing source'):
+                guarded_search(self.conn,source_census_fn=lambda:{})
+        self.assertIn('TASK_KNOWLEDGE_PROTECTED_CONTROLS_UNCHANGED=1',output.getvalue())
+        self.assertNotIn('TASK_KNOWLEDGE_COMPLETE=1',output.getvalue())
+
+    def test_success_follows_control_verification(self):
+        output=io.StringIO()
+        with patch('tools.live_planning_evidence_search.run_search',return_value=['receipt']),contextlib.redirect_stdout(output):
+            self.assertEqual(guarded_search(self.conn,source_census_fn=lambda:{}),['receipt'])
+        text=output.getvalue()
+        self.assertLess(text.index('TASK_KNOWLEDGE_PROTECTED_CONTROLS_UNCHANGED=1'),text.index('TASK_KNOWLEDGE_COMPLETE=1'))
