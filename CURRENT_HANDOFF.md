@@ -1,5 +1,12 @@
 # Salus Solutions — Current Handoff
 
+## 23 November 2026 — Family caregiving source-index reconciliation
+
+Member-neutral source maintenance PR #1317 was squash-merged as `a9420938b9d753856f909f0134bd552c519cb4e3` after all eight repository workflows passed at exact head `c9dae1d4c7fb51f66f70e131ac06adfb82487e32`. Governed readback confirmed **286 unique endpoint-table addresses**, including **35 additions**, no changed/superseded/removed addresses, all 47 original research routes and all 30 original bibliography routes. All source entries remain Unvetted Candidate.
+
+A follow-up pointer-only candidate retains 26 useful later public routes, including new references and contrary-research leads. Its proposed total is 312 unique addresses; exact-head checks and merged readback remain separate. Private paper/capture/review records stay outside the repository. No actual household records, source bodies, findings, source qualification, clinical protocol, service activation, public paper publication, reader or runtime change is authorized or established. Full task-specific corpus, human source-use and formal Charter assurance obligations remain separate. Compass stays paused and its reader disabled.
+
+
 ## 23 November 2026 09:14 CST — Weekly governed OSINT source expansion merged
 
 The weekly member-neutral discovery run began from exact governed head `44521a45d19669d1470e2f796f789d98dc0ea02b`. Full-register reconciliation confirmed the correct pre-run authoritative total was **201 unique addresses**, including the later clinic/outpatient section; the earlier 126 figure covered only the core global tables. The run screened worldwide health, humanitarian and economic data/API routes plus member-neutral governance, internal-control, audit-quality, assessment, exercise-evaluation, evidence-reliability, plain-language and evaluation-method topics derived from new Salus work.
