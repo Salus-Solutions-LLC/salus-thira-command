@@ -29,9 +29,9 @@
     "SALUS_INTEGRATED_OPERATIONAL_LEGAL_FINANCIAL_REVIEW_STANDARD.md": "9b83cf6177e1c54a530aa005a0da0dbddb1fc1fd17ed99c9f24ee1ab3ae35f56",
     "SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md": "bb828e2ad5ce9c9d6aefbb0498660da1f22f3ae5703bc114d0c2274f4a28c914",
     "SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md": "b11d27e9885f0490f8ea4e21a049d46ab874daab5f77ee2d2334332199b3dab5",
-    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "81b9280c5a1fa26fe6defe75c4a7f8edd056cb3e012d65cddf0768e7ebc506b2",
+    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "16a5195d4a9a968003f27540ecc80358871032963ad982974cc5d61c3cb5516c",
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
-    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "d96ddd5b116d371e0268f16067376eaeda38bac7de2c1d4df3a7e185de940caf",
+    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "775149304bddd5bda202c5913091326f54ce1f31197a840356dbf4c00828fa0c",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
     "SALUS_PROGRAM_CHARTER.md": "79260868de181cb198d69c6a24bc36c66dd60ccb49aa9bead808aae87f4ea5f5",
     "SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md": "eae8197bf57b7a8a561b7ddbe1d68b70d55167738dbb260255281e1f23fc89fc",
@@ -12527,6 +12527,318 @@
       "decision_ids": []
     },
     {
+      "id": "REQ-99aff079c614e62f286b312f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 358,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "cfbeeaf09665b2356dfd097e097aac12b6496ce70cf6c3e436c5d253d9b625fa",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-94ecbc11fe9d6ea870b80ce7",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 360,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "72a73d2e3d052c549e2e12b598a83a8e0001e1f22613eaa66c1c3d1412cab0c9",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-5fdc6c885d1f523530fe7c3d",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 362,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "a2f43abd59a76337d2e2f8c13b5f4a9e3e8110055b4989e68159771e5eb5f4c6",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ef1fd645b32bc8ac051ade14",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 363,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "4da1ec6f47782090102dc16bda978efb5655fbf2ddce0f84ecf1faf79a930f2d",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a9a72b21debf8b78c9ce7764",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 364,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "b4dbc6e0b9b4bb0fb643b647916eff4cd0e183dfe01572c1fee02f37f90c3ae8",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-48ad373315a39f357e6ad9e3",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 365,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "f7509751d35edf4083efeff0e894fed071ad2d677d17eab1f5f1491eef0bfbf8",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a3aa38bfe0b3430ced49a48d",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 366,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "03fe673549593dc7e97b62f5a3f4c6ff35c741f48e35e75817060b00d04f1632",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a622606c0c6b67dff36f116e",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 367,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "f3ffb65351abd885e7a31086e133b8d143a8ec114409d8a8f569329ce863a00d",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-01ef2c70a737e754c36efffc",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 368,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "727fab7e111d3f90b977431e12050de2f7a9d604f05ea406d83198b069c90968",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-58d42c686ee56a7cfab87c83",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 369,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "6f313f8987568ff4df429c2620bea878c98297c13c4828378eff6b1082bad24c",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-cafcd5ffcb22953776100d8c",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 370,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "5332cf58bae095a25a0a281a4632e57ead9d8e7eb5f6f0d40b6a5c58a8c39480",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-39e3ce7b683881f3939bfaf3",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 371,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "f29f5762ab3c3e32ef255d8509e1f218c77d808f5161d28afb32735cb0f0829c",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-86052de39ad65dfeb971e154",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 372,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "ead99d7223462243d4f18229ddf1d31e36a5cb34a4d05bdb85796b4622a9a3c1",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-458d0b1531b76e82802ecb7e",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 373,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "2d45ef0f104064d86146f79f0fea74e75960c3ae93f1f05fffc11cf8529e41de",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-57614ed7a2b187318da982cb",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 374,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "33bea633f3b6ec7f025e6ce6e52cf3ab167d888fbbb58af52f808b8956f17279",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9664da657582c79479970cd6",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 375,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "a9b4af20da16cc5bef1864826edf72ce68ec6a48ee310cdf93e027733dc7e0d6",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c738afb9f3ad198e9e424c9f",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 376,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "8e410cb115ad8a1b8ba7256e0978c59ed9b6a995187002b32665820261c1c68a",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6da178859815891c259446e8",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 377,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "2b3cc6afb8477e94438957c977773b0c6d873eb4dc684500cac7dc54eb4976ff",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-15dfc8442d33302df66c5741",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 378,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "c223463177db56a3a66e703d179c81408637af494a2765a35f12a7513795ae12",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ac00f4090d7fad12e13bc297",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 379,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "242248a9f477fee19827db58ff59d35209ccea8d730e298aeb919f9ae7223111",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-924eeb5b33d0b4abc83ca406",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 380,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "66995837b70505d32650919f9b51d5b2bd703ced1563cd034687b8560b08fffd",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-3b1bc29fdff9d1a46e5ebaca",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 381,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "970a65dbd955f6bd26319192502ebd847686df36d0291d88265fbe0c6fea54ae",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-f7312c69479b3e8a69db3650",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 382,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "6e8f22eff417bf592793fc48b9c405894ff5981608c8fd2e56bedaffcf631cc7",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c623d152a403aaf5428802bc",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 383,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "753b3153be559e0bb058669aa3fd724b901a93693ac39b7d16ebe3175e1f299a",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-e83dfe8b7cbe575e3c6219e5",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 384,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "9f6c327595a07bfc3bea403f3ab2f1b0b575b56cf05435b0e95c8fcdbc4601f5",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-23603a1150cf1b9b127f271b",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 385,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "8df0777e8a0b3e881b2c0610c7e0bc489e89a37f9c5bbfc668d66e0761b1b9b3",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-b04161b63d137eabf5e248f9",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 386,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "cd58c224f2e2a3edb8bd1389f37240c268aeb5fcee39b25ce064fa87bebff920",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-e19f1fca317cc71eadc69aaa",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 387,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "7e3cbbe7010cb0f2118271094af3e2a9ea906f46b74bf220018f9ff34e2abc6d",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-df6aaa53b90789753ae0a9b3",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 388,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "9a5729d483d5cdb8838c7c1c9d575f5ad64ee6da076d18a3809f17dc1c8de62c",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c352ffc72816ce4f45b5aad1",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 389,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "04a23088667502c238aae08594c664399fd74a366c37aec5e6cb064f85ea7aee",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-df065c6a943a30dd3ffe0824",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 390,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "84a409dc0906925dc80b740a7ea30a03f64c25a7b100d44b6182abb15ff89186",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-df05bd5dcc0f27cc025bdd30",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 391,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "f3da856d87df7ca28bd357040a11acd5a9eb27b3793d2d7118e54c93f9f7226e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-72f5167a2a2787252e0997cc",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 392,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "638328d6eb0c2c0973593c316d905b5cdd1290be07df5fda824ce66b43200f75",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d2e2c5aaa1a5f16d4786dd83",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 393,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "3b278cce2a4bbc73f275c898e4ddf160a567db129916a05219492ac0f43d0e51",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-89f81e28e77e6bd0a880a440",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 394,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "70c097619ee18ba4a3eb1f56330b701c85d85ba9953eb7f23aeed2150867731c",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-5ab7c97828d6a32235424922",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 395,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "042a0fb2607be841f3ca2e13eebb4661ac9512e50cac72c78c4a11b23adb3e41",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4a1c92999abfe0239144741e",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 396,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "a2bd8097cfee3a68b1409ea0a0fd79ba99138699bc6e60b479a92aac7386df40",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-483f0a260866176532c3c9ce",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 397,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "abd81652962afcc425f8679ba7cbd17540e615171b7b7a9bb4dd22516549f436",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-87addf541b2486f39fb4658b",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 398,
+      "section": "Salus OSINT Global Endpoint Register / Family caregiving public-source expansion 23 November 2026",
+      "text_sha256": "959a4ff72419f17976fbf49972c29cd533bbad27b4ca4ec2e2f4167b74a0e5f8",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-b9d3a1caf2f3961ecad861e2",
       "source": "SALUS_OSINT_SOURCES_LIBRARY.md",
       "line": 1,
@@ -13722,6 +14034,30 @@
       "line": 99,
       "section": "Salus OSINT Weekly Discovery Log / Verified closeout of planning source indexing - 23 November 2026",
       "text_sha256": "2b8e9c9a4f93bfbecc40a943f071332b58d3c71a6a4c322f488c5a8a0829ea26",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a312414ea2dad76a99f11c5c",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 101,
+      "section": "Salus OSINT Weekly Discovery Log / 23 November 2026 work-triggered family caregiving source maintenance",
+      "text_sha256": "6ad6b9850dbdc84405d8c83ac8f12da0e5d1ad98247b7c9740b2479c73e6d874",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-9ec6c94902d7edf038180136",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 103,
+      "section": "Salus OSINT Weekly Discovery Log / 23 November 2026 work-triggered family caregiving source maintenance",
+      "text_sha256": "cb23b7c2bfccc72e4f15b460eb34d6ae3819cd2c3c659a00c13a67ee1f2c8d4e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-c983295fb7c2bc95f8d154a7",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 105,
+      "section": "Salus OSINT Weekly Discovery Log / 23 November 2026 work-triggered family caregiving source maintenance",
+      "text_sha256": "73a781ff260c494dd0d4244bd902a571783a0819d2628c3e7e6cc09501350dea",
       "decision_ids": []
     },
     {
@@ -35570,5 +35906,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "ed82333d26026fe84c1d87eee23f059aa93e7654373a6529c3f7073c15d53a19"
+  "register_sha256": "053e16f0ba5c4059d9ac4680f7dea3f202201ed14a9b6ef3f53872ee3c8675c2"
 }
