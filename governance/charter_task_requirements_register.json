@@ -28,9 +28,9 @@
     "SALUS_INTEGRATED_OPERATIONAL_LEGAL_FINANCIAL_REVIEW_STANDARD.md": "9b83cf6177e1c54a530aa005a0da0dbddb1fc1fd17ed99c9f24ee1ab3ae35f56",
     "SALUS_LEVEL_BAND_IMPLEMENTATION_CROSSWALK_20260929.md": "bb828e2ad5ce9c9d6aefbb0498660da1f22f3ae5703bc114d0c2274f4a28c914",
     "SALUS_ORGANIZATIONAL_HEALTH_PRODUCT_INTEGRATION.md": "b11d27e9885f0490f8ea4e21a049d46ab874daab5f77ee2d2334332199b3dab5",
-    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "6438a13bf0b12438037faa0c641bd32433574774cdcb9f910c4f0edbb081ca53",
+    "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "b32505330157d13fb9fa694dc96c1b4aec7a980150906b2b0328beb54d56c7d8",
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
-    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "2e8d11103de1eed138458f22a3a50432344da607c7a01d8ef0a8c2fffe5ab0f1",
+    "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "1d69928e53995d4bc9496d77b0690d5aa03489e03f2cef3eb2a155280b1af8be",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
     "SALUS_PROGRAM_CHARTER.md": "800a638be61fe5e6485454e295065bca106775456abbf47e5972d53c00367023",
     "SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md": "27c9b6311a5fc7033c198cfc032c4cced6443f4fa164ca75fff1e74cfbfabb55",
@@ -11929,6 +11929,270 @@
       "decision_ids": []
     },
     {
+      "id": "REQ-dd268fb155347ae61685a868",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 322,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "65d143cf32bf7e693d2d6e2c245534ea61fa4ee21dec65bae5c4c70c06f1a3c7",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-8361b17003912581e2d46b92",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 324,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "6e12f36ff140ad1331d22a5510cc738e07d58a01b47ca062387bf3358b4ba77c",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-751a0f6d156f3c7eb58c3460",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 326,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "1d20dc4ce6d845c733b4b1fca4ded3a4fe83adfadcad05ed4b574e69e7178e7a",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-fdff0e6e68f4a88abac4dc4d",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 327,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "4da1ec6f47782090102dc16bda978efb5655fbf2ddce0f84ecf1faf79a930f2d",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-38210a3e25bab6f34e39e24e",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 328,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "c571ef2bf6d375ab0f87f0a2b307770b9a9bed7389eda5c90f4fb0074f4d9cca",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-06055ebbdc650cf4b02e5bb6",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 329,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "ca7dc9a6b41404bc33c28df6c898aa940233c2d171e7338b6b3e10c862000931",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-48bad23743f0f5505d97b424",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 330,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "a58ebd0143650c6eae130141534f7273b0c2c3097a9164757c3fde3c3aad6df4",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-830da5a552ac4114977c4be0",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 331,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "62ad37061d2ddff98b51a110d8516e3072acae6848387e80e551e92b8afa0735",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4c5419af1419dd670c766a8c",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 332,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "0250a1c5aec6c26717f7c772113a955acdccb9dd26b2ac934f10f42f2554739c",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-eb0fb0d28cbd8e1ecf407d49",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 333,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "3166eafb0801c591278ecc33eaadab43d07e9699dcf0314a7257dd7080410d90",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ddeaf343903a01205747eeed",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 334,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "3dc177be538e01695a1859c605aa1edb862876f0ad1aa7fa77568ed050627cb8",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4e6e1dc7d337d9ddbdf38b48",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 335,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "7f21881caa5759e53dc5dc69bf037179262a2f9f8e0164d672c8be01ec1efef3",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-68e5fd1e457e29c2dfc06933",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 336,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "72d4372ea5b7f13f27f645fb9a8dad66ceb1e617dc958978541a40d62a53b1d7",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-15766e1d5bb7682213ec2188",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 337,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "76cd5b7c3798c8d6f97ae79d875e6e3546eb18a5d85cd460d8c396cb1e907b68",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-446ed1e92a04277b18b8fd2c",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 338,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "1f88256abce3a149c5ea3ad977321207aafff5ec0504905929fd7cccbfc004c8",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ee8e0d55d5d7e51e5e08abfd",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 339,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "799bedda2f03ad3c533254dfd62279c84db4d9ee08b9ff7a4842a336e481a6f4",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6080030b5a9157afd341125a",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 340,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "6cc81a7e7657c64f8c255d26c60d22488730600b5592110bb8d91b431d113986",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-8852bd47b0c085a8090755d2",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 341,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "0b10af28644a34e6c29c0bb5522896bc183b8b672d3e58c78eb11857256dacb0",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ad1c6045588f9f67a63374b3",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 342,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "15dc4b134d5d354d6ee51d2abb6ff603b713c5b6e1ae6148d6b8ff5ce994cdca",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-02675354413d4db39894bb2d",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 343,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "9580fa0a30727a76f4820bb173b1d0fb4cbac3270c30c9e84f0dfec052dd4f21",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-309373b65ab167feaeb590fb",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 344,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "400f661602f285ef8f914529ae045012eda44b511a3ec7f30789e193b4bd702d",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6f7ece7d01199e5adaa0a143",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 345,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "99b53de1228e0788ed6415d2d94405def80dc8156b04232edab47c1864cc91a6",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-4c21a17578555caa66f759b4",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 346,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "0f2bc1d95012f31d1f909b0dbf057a61cb3a5aad2abec530c53abf28fcb58a9b",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-bd50ec976d6868abdc3f6662",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 347,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "6df74ac9ba0e2f2f3c9a56cb08a8d011bb162a569fdfe7b810bc6cc240dcc8d2",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a971b56c51321fb1b6a6271c",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 348,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "3a65a9ff8ec84c561c9aa7122a0f5e0c234815bb7a8cecaafec49ec587ac0db3",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-d1ed239b04087a654e9efb0c",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 349,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "0ddd4bfce79678f1fd13ba842a0cfb208d928b1accb3e1e987dcbcba4972bd41",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ae159c8556edd90fbf9c1e31",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 350,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "747100cdd861cc86d67f0dd97409b41cf407eb99fc263b976daa019461e763cc",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-58dafbcaf399ece28ead1663",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 351,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "190aaabf82e85efc8119a96618ea370a76156e7d2b16e2f3d559304e6bab32d1",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-3b09d6d8c3033b8140d75aa8",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 352,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "a7d6a651c5e00c19fa7431013e0eb3c71857178ef7b64917edfa5fe7e7c9e7b4",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ee3e9d28222d441f24fe011c",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 353,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "4d1cf7ecfd6d16422f61f9aff6fa5792eab636782270b7ec3b7fd6f8fe4e958e",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6917bf30bcef26bf0452dc98",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 354,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "e01b7969446b4d8988566b696266b70db13496e2c7ede21d81592f55d03b6ff0",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ae2c405dac37fd8ecc929f88",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 355,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "92d2a0f4624f143d0e846cc3d994be441afd9c4a5e0e7d46292d921e45ec7913",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-6f5661365f0a7cb23e9aba7e",
+      "source": "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md",
+      "line": 356,
+      "section": "Salus OSINT Global Endpoint Register / Crisis communications planning source pointers - 23 November 2026",
+      "text_sha256": "bd893bd7a82c6c465ad954ad840ddd75ea8095186302c63eb29d5b4e2192c65b",
+      "decision_ids": []
+    },
+    {
       "id": "REQ-b9d3a1caf2f3961ecad861e2",
       "source": "SALUS_OSINT_SOURCES_LIBRARY.md",
       "line": 1,
@@ -13073,6 +13337,32 @@
       "section": "Salus OSINT Weekly Discovery Log / Clinic topic expansion 16 November 2026",
       "text_sha256": "8b0aed17dafa1bec976906568e3eb3ece15fd8b87dc363b0a05e4b588b685756",
       "decision_ids": []
+    },
+    {
+      "id": "REQ-958c75b432445c2f6035fbb3",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 89,
+      "section": "Salus OSINT Weekly Discovery Log / Work-triggered crisis communications source indexing - 23 November 2026",
+      "text_sha256": "117fcbfefba90cee05bda3682b0aee8421ed1886424fafdc5ff1a0ae5d3b8554",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-a9295c9c1675e550118b2b04",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 91,
+      "section": "Salus OSINT Weekly Discovery Log / Work-triggered crisis communications source indexing - 23 November 2026",
+      "text_sha256": "e0795fa70a1b509e67c2c7bca1786d75746584f7af4f1808788ec9e0b2e68387",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-865f23d6c8be8254b7646b23",
+      "source": "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md",
+      "line": 93,
+      "section": "Salus OSINT Weekly Discovery Log / Work-triggered crisis communications source indexing - 23 November 2026",
+      "text_sha256": "59a01acdbe7ea404972976c94a00e7ffd3e5d681ba798fe1c074f7263e0a0c44",
+      "decision_ids": [
+        "SAL-D140"
+      ]
     },
     {
       "id": "REQ-20437102cecee7c7e772f4b2",
@@ -34727,5 +35017,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "da88c8dc3e68234da313517b8e981814d01aab266c38954549a3d49e9a605018"
+  "register_sha256": "4c9be881acedfbf21f1fa6279dd05a1d9a1f4f19723843380cd949c4f8ef4bf8"
 }
