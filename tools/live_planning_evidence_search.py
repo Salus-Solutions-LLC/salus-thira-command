@@ -224,13 +224,34 @@ def run_search(conn, *, source_census_fn, minimum_boundary=1, minimum_represente
 
 def protected_source_controls(conn):
     """Read hold/pause/checkpoint controls; never emit source identifiers or content."""
-    queries = (
-        ("holds", "SELECT * FROM m365_knowledge_holds ORDER BY source_item_id"),
-        ("paused_candidates", "SELECT id,source_item_id,status FROM m365_knowledge_candidates WHERE lower(status) LIKE '%paus%' ORDER BY id"),
-        ("bulk_controls", "SELECT drive_id,pending_id,item_id,status,reason,attempts,next_attempt,lease_owner,lease_until FROM m365_bulk_items WHERE kind='file' AND (lower(status) LIKE '%paus%' OR lower(status) LIKE '%hold%' OR lower(reason) LIKE '%paus%' OR item_id IN (SELECT source_item_id FROM m365_knowledge_holds WHERE status='Governed Hold')) ORDER BY drive_id,pending_id,item_id"),
-        ("extraction_controls", "SELECT candidate_id,attempts,next_attempt,lease_owner,lease_until,last_code FROM m365_bulk_extraction_checks WHERE candidate_id IN (SELECT id FROM m365_knowledge_candidates WHERE lower(status) LIKE '%paus%' OR source_item_id IN (SELECT source_item_id FROM m365_knowledge_holds WHERE status='Governed Hold')) ORDER BY candidate_id"),
-    )
-    result = {name:[dict(row) for row in conn.execute(sql).fetchall()] for name,sql in queries}
+    def field(path):
+        if getattr(conn, "backend", "sqlite") == "postgres":
+            return "COALESCE(classification_json::jsonb #>> '{" + path + "}','')"
+        return "COALESCE(json_extract(classification_json,'$." + path.replace(",", ".") + "'),'')"
+    fields = {"extraction_status":"extraction,status", "failure_code":"extraction,failure_code",
+              "retry_eligible":"extraction,retry_eligible", "automatic_retry_paused":"extraction,automatic_retry_paused",
+              "disposition":"extraction,disposition", "disposition_reason":"extraction,disposition_reason"}
+    candidates = [dict(row) for row in conn.execute("SELECT id,source_item_id,status," +
+        ",".join(field(path) + " " + alias for alias,path in fields.items()) +
+        " FROM m365_knowledge_candidates ORDER BY id").fetchall()]
+    if len(candidates)>150000:
+        raise RuntimeError("Protected-control candidate bound exceeded")
+    holds = [dict(row) for row in conn.execute("SELECT * FROM m365_knowledge_holds ORDER BY source_item_id").fetchall()]
+    def paused(row):
+        return ("paus" in str(row["status"]).casefold() or row["extraction_status"] == "Retry Paused"
+                or str(row["automatic_retry_paused"]).casefold() in {"true", "1"})
+    protected = {str(row["source_item_id"]) for row in holds}
+    protected.update(str(row["source_item_id"]) for row in candidates if paused(row))
+    ids = {row["id"] for row in candidates if str(row["source_item_id"]) in protected}
+    bulk = [dict(row) for row in conn.execute("SELECT drive_id,pending_id,item_id,status,reason,attempts,next_attempt,lease_owner,lease_until FROM m365_bulk_items WHERE kind='file' ORDER BY drive_id,pending_id,item_id").fetchall()]
+    checks = [dict(row) for row in conn.execute("SELECT candidate_id,attempts,next_attempt,lease_owner,lease_until,last_code FROM m365_bulk_extraction_checks ORDER BY candidate_id").fetchall()]
+    if len(bulk)>100000 or len(checks)>150000:
+        raise RuntimeError("Protected-control checkpoint bound exceeded")
+    result = {"holds":holds,
+              "paused_candidates":[row for row in candidates if paused(row)],
+              "protected_candidates":[row for row in candidates if row["id"] in ids],
+              "bulk_controls":[row for row in bulk if str(row["item_id"]) in protected or "paus" in str(row["status"]).casefold() or "hold" in str(row["status"]).casefold() or "paus" in str(row["reason"]).casefold()],
+              "extraction_controls":[row for row in checks if row["candidate_id"] in ids]}
     raw = json.dumps(result,sort_keys=True,separators=(",",":"),default=str).encode()
     if len(raw)>16777216:
         raise RuntimeError("Protected-control proof exceeded its resource bound")

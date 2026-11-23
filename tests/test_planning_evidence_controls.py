@@ -2,6 +2,7 @@ import sqlite3
 import unittest
 import contextlib
 import io
+import json
 from unittest.mock import patch
 
 from tools.live_planning_evidence_search import protected_source_controls, guarded_search
@@ -13,11 +14,11 @@ class PlanningControlProofTest(unittest.TestCase):
         self.conn.row_factory=sqlite3.Row
         self.conn.executescript('''
         CREATE TABLE m365_knowledge_holds(source_item_id TEXT,status TEXT,hold_reason TEXT);
-        CREATE TABLE m365_knowledge_candidates(id INTEGER,source_item_id TEXT,status TEXT);
+        CREATE TABLE m365_knowledge_candidates(id INTEGER,source_item_id TEXT,status TEXT,classification_json TEXT);
         CREATE TABLE m365_bulk_items(drive_id TEXT,pending_id INTEGER,item_id TEXT,kind TEXT,status TEXT,reason TEXT,attempts INTEGER,next_attempt TEXT,lease_owner TEXT,lease_until TEXT);
         CREATE TABLE m365_bulk_extraction_checks(candidate_id INTEGER,attempts INTEGER,next_attempt TEXT,lease_owner TEXT,lease_until TEXT,last_code TEXT);
         INSERT INTO m365_knowledge_holds VALUES('held-source','Governed Hold','restricted');
-        INSERT INTO m365_knowledge_candidates VALUES(1,'held-source','Candidate'),(2,'paused-source','Paused');
+        INSERT INTO m365_knowledge_candidates VALUES(1,'held-source','Candidate','{}'),(2,'paused-source','Candidate','{"extraction":{"status":"Retry Paused","automatic_retry_paused":true}}');
         INSERT INTO m365_bulk_items VALUES('drive',1,'held-source','file','Done','',0,NULL,NULL,NULL),('drive',2,'paused-source','file','Paused','pause',2,'later',NULL,NULL);
         INSERT INTO m365_bulk_extraction_checks VALUES(1,0,NULL,NULL,NULL,NULL),(2,2,'later',NULL,NULL,'paused');
         ''')
@@ -35,7 +36,7 @@ class PlanningControlProofTest(unittest.TestCase):
         before=protected_source_controls(self.conn)
         self.assertEqual(before,protected_source_controls(self.conn))
         self.assertEqual(changes,self.conn.total_changes)
-        self.assertEqual(before['counts'],{'holds':1,'paused_candidates':1,'bulk_controls':2,'extraction_controls':2})
+        self.assertEqual(before['counts'],{'holds':1,'paused_candidates':1,'protected_candidates':2,'bulk_controls':2,'extraction_controls':2})
         self.assertEqual(len(before['sha256']),64)
         self.assertNotIn('held-source',str(before))
 
@@ -44,6 +45,16 @@ class PlanningControlProofTest(unittest.TestCase):
 
     def test_pause_release_detected(self):
         self.assert_drift("UPDATE m365_knowledge_candidates SET status='Ready' WHERE id=2")
+
+    def test_extraction_pause_cannot_hide_under_candidate_status(self):
+        self.conn.execute("UPDATE m365_knowledge_candidates SET classification_json=? WHERE id=2",(json.dumps({'extraction':{'status':'Retry Paused'}}),))
+        self.assertEqual(protected_source_controls(self.conn)['counts']['paused_candidates'],1)
+        self.assert_drift("UPDATE m365_knowledge_candidates SET classification_json='{}' WHERE id=2")
+
+    def test_automatic_pause_flag_is_protected_without_pause_status(self):
+        self.conn.execute("UPDATE m365_knowledge_candidates SET classification_json=? WHERE id=2",(json.dumps({'extraction':{'status':'Review Required','automatic_retry_paused':True}}),))
+        self.assertEqual(protected_source_controls(self.conn)['counts']['paused_candidates'],1)
+        self.assert_drift("UPDATE m365_knowledge_candidates SET classification_json='{}' WHERE id=2")
 
     def test_retry_change_detected(self):
         self.assert_drift("UPDATE m365_bulk_extraction_checks SET attempts=3 WHERE candidate_id=2")
