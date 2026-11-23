@@ -1,5 +1,8 @@
 # Salus Solutions — Approved Artifact Register
 
+| `SALUS_PLANNING_STANDARD.md` and `SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md`; SAL-D154 | Enterprise P01–P12 planning process and crisis communications module, third-grade plan/concept/action language, assessment/evidence traceability, duties, feasible steps, review, test proof and controlled upkeep | Marc authorized Charter incorporation on 23 November 2026. Exact implementation is a candidate pending required checks and governed exact-revision promotion. Member-specific details, corrected binaries, source/legal qualification, operational work, tested readiness and external issue remain separate. |
+| SALUS-CONTINUOUS-WORK-001 in the Charter, planning standard, startup, assurance guidance and agent instructions; SAL-D153 | Continuous authorized work through completion on every Salus task with routine assurance and independent progress around blockers | Marc required continuous work on 23 November 2026. Candidate enterprise incorporation preserves user stops and all unavoidable decision, protected approval, access/security and hold boundaries; it establishes no unattended capability or new consequential-action authority. |
+
 | Artifact | Role | Authority status |
 |---|---|
 | SALUS-DOC-HEADING-SPACING-001, shared Word style helper and exact-file verifier | All-document heading spacing: H1 12/12 pt and H2 12/6 pt | Marc explicitly authorized adoption and checked merge on 17 November 2026. Governed implementation candidate; effective after checked merge. Maintained generators and exact files require their own checks; historical/distributed template migration and deployment are not implied. |---|
