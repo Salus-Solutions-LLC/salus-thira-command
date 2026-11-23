@@ -238,14 +238,22 @@ def location_checks(task, verified, now):
             review = json.loads(verified[loc['review']])
             if any(loc[k] not in loc.get('evidence', []) for k in ('before', 'after', 'review')):
                 raise ValueError('unbound inventory')
-            if before != after:
+            # Independent reads have different observation times. Compare the
+            # complete source projection separately; never ignore membership,
+            # version, boundary, authority or unknown envelope-field changes.
+            before_projection = {k: v for k, v in before.items() if k != 'observed_at'}
+            after_projection = {k: v for k, v in after.items() if k != 'observed_at'}
+            if before_projection != after_projection:
                 raise ValueError('inventory drift')
             if before['task_id'] != task['task_id'] or review['task_id'] != task['task_id'] or before['boundary'] != loc['boundary']:
                 raise ValueError('foreign receipt')
-            timestamp = datetime.fromisoformat(before['observed_at'])
-            age = (now - timestamp).total_seconds()
-            if timestamp.tzinfo is None or not 0 <= age <= 86400:
-                raise ValueError('stale or future snapshot')
+            timestamps = [datetime.fromisoformat(record['observed_at'])
+                          for record in (before, after)]
+            for timestamp in timestamps:
+                if timestamp.tzinfo is None or not 0 <= (now - timestamp).total_seconds() <= 86400:
+                    raise ValueError('stale or future snapshot')
+            if timestamps[1] < timestamps[0]:
+                raise ValueError('snapshot observation order reversed')
             inventory = before['items']
             members = [(i['id'], i['version']) for i in inventory]
             considered = [(i['id'], i['version']) for i in review['items']]
