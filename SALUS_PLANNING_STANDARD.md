@@ -32,6 +32,8 @@ Challenge assumptions and weaknesses; compare practical alternatives and no acti
 
 State start/escalation triggers, ordered tasks, primary and alternate roles, decision and stop authority, partner interfaces, accepted handoffs, milestones, resources, cost basis and funding/payment responsibility, dependencies, constraints, safe fallback, completion proof and retest triggers. Confirm actual partner capacity and authority rather than assuming acceptance from a notification or agreement. Check concurrent demands, key-person loss and common-mode failures. A proposed role, tool, budget or service is not an approved or demonstrated capability. Separately authorize implementation, purchases and operations where required.
 
+For incident-related plans, distinguish immediate danger, rapidly changing events, slower developing concerns and sustained response/recovery. Match procedure, approval/delegation, verification, update pace, staffing and fallback to time-to-harm, rate of change and applicable deadlines. Define transitions and parallel urgent/extended tracks. A slower event can still have an immediate required action; an initial label must not freeze the response pace.
+
 ## P07 Use third-grade plain language
 
 The required writing target for plans, their concepts, role cards and message templates is a third-grade reading level. Use common words, short sentences, direct verbs and one task per step. Explain the concept itself simply; shortening sentences alone is insufficient. Put the user's next action first. Keep the detail and complex analysis in supporting assessment or analysis records, with clear links from the plan.

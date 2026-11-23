@@ -9,7 +9,7 @@
     "AGENTS.md"
   ],
   "sources": {
-    "AGENTS.md": "a1230d5bafabd7305c01ea2ad8075379d5078e2b731ec221ba66f384a1122178",
+    "AGENTS.md": "0f84c967a0fbeba3400ca9e2e183d0ceaad359bf3f015195d0198b8446051133",
     "APPROVED_ARTIFACTS.md": "33a029928c0a2477c532a003459b7063f81ea402ab2ea3dc2f36e6afbb5fa708",
     "SALUS_24_HOUR_ASSESSMENT_DELIVERY_STANDARD.md": "569016cb16f361b1e76909cfc0643dc2029506b6f65686c59d3f3609f124a5cd",
     "SALUS_ANALYTICAL_ASSUMPTIONS_TO_ACTION_STANDARD.md": "e10ad8bbf42c6af6d2e701c886a9ba03b8a3c947610d737990b42931a7a4e3c8",
@@ -17,10 +17,10 @@
     "SALUS_ASSESSMENT_REPORT_PURPOSE_AND_EDITORIAL_STANDARD.md": "8999c2893921433badbf8cd0689331c2a5f27989d2d70003c43513fa02762191",
     "SALUS_ASSESSMENT_REVIEW_HISTORY_STANDARD.md": "03e8df27cf09916663f5d6ca3912f29398dd4866f67d2046a3c4f499de143def",
     "SALUS_ASSUMPTIONS_TO_ACTION_IMPLEMENTATION_CROSSWALK.md": "e1c08668dfec2b175d6730f105980c07e9e96484223df82d1edad92d9d3af804",
-    "SALUS_CHAT_STARTUP_PROTOCOL.md": "06e007ddb5f49da95cddcff2a89ad6ecb98f079d935b7dc15bd737806540c16c",
-    "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md": "a5d2f716d1eb5c719f01f985d6ef809c80d6cb02f69087778168d556aff1f485",
+    "SALUS_CHAT_STARTUP_PROTOCOL.md": "241859299e04185ee19394ae117eb0a56e4933a008014a887ce4a974372774f9",
+    "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md": "4cb5bae34237c2eeb9daa70bdf6eb13655e756a2bfa296980be07b5492eda2e1",
     "SALUS_DECISION_RECORD_WORKSHEET.md": "8752a8a1f1dc5a13514d0da8992fb8241bb964e40c98f3a34ff0eca1d4078b85",
-    "SALUS_DECISION_REGISTER.md": "bb9229e5af2f420c218e3f8e25f988714f8ececb8e3c29f823c5b229c3de0d10",
+    "SALUS_DECISION_REGISTER.md": "acd8b1d846676fc264a1248dc66fed30bcd962d6ca41e85d698bc64042f46c44",
     "SALUS_DECISION_TO_PROOF_IMPLEMENTATION_CROSSWALK.md": "93c306729dffe3d18d19157be16c8dfb82b4963caa1c84b1012e1da07f04a917",
     "SALUS_DOCUMENT_DESIGN_AND_PRINT_LEGIBILITY_STANDARD.md": "16a70fc9bc8a63069edd3bf017c7479a6b6560bdc4639f320d39d11b4e3877ad",
     "SALUS_ENTERPRISE_DECISION_TO_PROOF_OPERATING_STANDARD.md": "1560e28807b65b78d7998623fa64e088369fd437e0b04212894ccf08d3003aae",
@@ -32,9 +32,9 @@
     "SALUS_OSINT_GLOBAL_ENDPOINT_REGISTER.md": "6438a13bf0b12438037faa0c641bd32433574774cdcb9f910c4f0edbb081ca53",
     "SALUS_OSINT_SOURCES_LIBRARY.md": "e7e35750fc6cd20197fd42cb2e7a69026b1106a8956d1b2f968ea818c02dcf34",
     "SALUS_OSINT_WEEKLY_DISCOVERY_LOG.md": "2e8d11103de1eed138458f22a3a50432344da607c7a01d8ef0a8c2fffe5ab0f1",
-    "SALUS_PLANNING_STANDARD.md": "36c1cf876a5e5d8c12ed036b751c2fb745bdd20bd85b56f9dbd7650a192b8b50",
+    "SALUS_PLANNING_STANDARD.md": "0219ca9ab2ac9f34db203081e4e05f1780859970659c774fef7d9655373c2ace",
     "SALUS_PORTFOLIO_COHERENCE_AND_HANDOFF_STANDARD.md": "d023c665eb2d59b15ac6200983989358e5fe7e16fc0e7f0e30e4e0096c2bf12a",
-    "SALUS_PROGRAM_CHARTER.md": "f3da947038835c366fe5f579e630bd3bd8224ad7bc07fc9bd416c02c410acc31",
+    "SALUS_PROGRAM_CHARTER.md": "5f0d94d52ed8f39be246e39402aa8c6a30b483cb5898dbf1c59384e21b35300a",
     "SALUS_REPORT_COMPREHENSION_AND_PRESENTATION_STANDARD.md": "27c9b6311a5fc7033c198cfc032c4cced6443f4fa164ca75fff1e74cfbfabb55",
     "SALUS_REQUIRED_INFORMATION_AND_LENS_CROSSWALK.md": "e2a6c9f76dd33e291305fec43548ad0021a1cf44d0acaaa87f075bea57eb9409",
     "SALUS_RESEARCH_CAPTURE_AND_KNOWLEDGE_TRANSFER_STANDARD.md": "aa0ae006af695af39c14a5194e3a0568dcc3481eab4ffbf1b2d487c12ef9df19",
@@ -210,11 +210,11 @@
       ]
     },
     {
-      "id": "REQ-8601716e0201111aabe609dd",
+      "id": "REQ-6f4ed223c863078e8c552a12",
       "source": "AGENTS.md",
       "line": 28,
       "section": "Salus agent execution requirements",
-      "text_sha256": "8a997120ce0062f38699aca48256a9e84ab2f706c5d4be4d75096129862e6f74",
+      "text_sha256": "407c37354e03e7e720ff1159deedfb178c5fb9269dee9c4f972e50ada1b5d960",
       "decision_ids": [
         "SAL-D152"
       ]
@@ -2971,11 +2971,11 @@
       ]
     },
     {
-      "id": "REQ-8aba39b51738c2ebe80c0d45",
+      "id": "REQ-55a9c5da0e2457fae0adfbab",
       "source": "SALUS_CHAT_STARTUP_PROTOCOL.md",
       "line": 5,
       "section": "Salus Solutions — Chat Startup and Handoff Protocol / Planning and work continuity preflight [SAL-D152 and SAL-D153]",
-      "text_sha256": "f696c3c1dd95b041ab892d008a4a63a197e784366cef93c2c054aa3fe776d2c4",
+      "text_sha256": "e564255594ba5fc22c6170c3a3635b40af26cf8d80f544593833d7dbfd03634e",
       "decision_ids": []
     },
     {
@@ -4352,9 +4352,33 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-40a2ba7f688b97be41a79084",
+      "id": "REQ-8cfe1b12676217cbfd1aca74",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
       "line": 13,
+      "section": "Salus Crisis Communications Planning Standard / C01A Incident tempo and parallel procedures",
+      "text_sha256": "0594f40cf1356cdc8ae839349b8cce9ffc04393e942fdc682e72dd70e47eef27",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-0c9d0e6ca779df6fc8f4de3c",
+      "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
+      "line": 15,
+      "section": "Salus Crisis Communications Planning Standard / C01A Incident tempo and parallel procedures",
+      "text_sha256": "db051613524961737644ef02ed38d207843760ab5919b7e272144bf2cbbe5c73",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-ea6c2524b569dc02ced08edc",
+      "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
+      "line": 17,
+      "section": "Salus Crisis Communications Planning Standard / C01A Incident tempo and parallel procedures",
+      "text_sha256": "dd4a19acbe2af0ec31499c09e132706030031558d08259f8d1fd1310e60e8d0a",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-40a2ba7f688b97be41a79084",
+      "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
+      "line": 19,
       "section": "Salus Crisis Communications Planning Standard / C02 Roles and sustained cover",
       "text_sha256": "71654f2db445a376f1c2a59a7fe1ac402c28115061fd4899ee8a22e829834e9c",
       "decision_ids": []
@@ -4362,7 +4386,7 @@
     {
       "id": "REQ-ceb2188e3dd57063a04a1626",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 15,
+      "line": 21,
       "section": "Salus Crisis Communications Planning Standard / C02 Roles and sustained cover",
       "text_sha256": "edb157895405b4bc1af30d5eba88df921f05db21b99001985fa0000568e7221f",
       "decision_ids": []
@@ -4370,7 +4394,7 @@
     {
       "id": "REQ-2bbf2e624ade9b25157432a9",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 17,
+      "line": 23,
       "section": "Salus Crisis Communications Planning Standard / C03 Fact verification and uncertainty",
       "text_sha256": "50276e5f1d35af5a8fadebff92ab7d63979d60794193edc8c3481f59ec49e07f",
       "decision_ids": []
@@ -4378,7 +4402,7 @@
     {
       "id": "REQ-cd4ea7befd2d17af77e0a01f",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 19,
+      "line": 25,
       "section": "Salus Crisis Communications Planning Standard / C03 Fact verification and uncertainty",
       "text_sha256": "e97f32a198f80e264a318817fefdf5952ec90a84f1d28a8dae5438dccd9eca08",
       "decision_ids": []
@@ -4386,7 +4410,7 @@
     {
       "id": "REQ-68413556e4cc27522e36a393",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 21,
+      "line": 27,
       "section": "Salus Crisis Communications Planning Standard / C04 Audiences and affected-person handoffs",
       "text_sha256": "d7b22d2728b51e9a0b4812b86494ca3727c092fdb8480d69c0c3c28bc4850aa7",
       "decision_ids": []
@@ -4394,7 +4418,7 @@
     {
       "id": "REQ-d68ef5a9a19b350e20ea0f3c",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 23,
+      "line": 29,
       "section": "Salus Crisis Communications Planning Standard / C04 Audiences and affected-person handoffs",
       "text_sha256": "4856393c808704729fae299462f9ec5be2248d67e7b87b46088e01629ce8f3d6",
       "decision_ids": []
@@ -4402,7 +4426,7 @@
     {
       "id": "REQ-ea2e87529d9531eeffb4b78c",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 25,
+      "line": 31,
       "section": "Salus Crisis Communications Planning Standard / C05 Message design and approval",
       "text_sha256": "1cdcc76a8352bc355fd505b666cd2f1411259bcf150680419a8207a667881f1d",
       "decision_ids": []
@@ -4410,7 +4434,7 @@
     {
       "id": "REQ-b656918a2d58ffd87b85ee9a",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 27,
+      "line": 33,
       "section": "Salus Crisis Communications Planning Standard / C05 Message design and approval",
       "text_sha256": "7627d63a53491e09aca78debd2153801c155a374e3601aa76b464400ea5c852a",
       "decision_ids": []
@@ -4418,7 +4442,7 @@
     {
       "id": "REQ-e5b3ed22ae7a985ee86dff98",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 29,
+      "line": 35,
       "section": "Salus Crisis Communications Planning Standard / C06 Channels and failure modes",
       "text_sha256": "6bf713d707188aab1b2cb23877f5b79a64a90ba12f5b82a69ef35fba0d5d3291",
       "decision_ids": []
@@ -4426,7 +4450,7 @@
     {
       "id": "REQ-ae034791e715b9f12738b4a8",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 31,
+      "line": 37,
       "section": "Salus Crisis Communications Planning Standard / C06 Channels and failure modes",
       "text_sha256": "10371e7cb5841f2b044e261ef6adce03fe99afe24a800a75068f94cc2097e49b",
       "decision_ids": []
@@ -4434,7 +4458,7 @@
     {
       "id": "REQ-9dea525b3c15190ca2799993",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 33,
+      "line": 39,
       "section": "Salus Crisis Communications Planning Standard / C06 Channels and failure modes",
       "text_sha256": "b907c9440d8740b7a5e5f487d26d07925a54b50a16df97e2a609f2bf666de441",
       "decision_ids": []
@@ -4442,7 +4466,7 @@
     {
       "id": "REQ-3c674a6958c38ce89230aebd",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 35,
+      "line": 41,
       "section": "Salus Crisis Communications Planning Standard / C07 Public and media communication",
       "text_sha256": "6268ca797c18d05226dde27f8bd8105bb91389432d26eb214ec5388b19875890",
       "decision_ids": []
@@ -4450,7 +4474,7 @@
     {
       "id": "REQ-c9e56ac71ca587f93b46adf5",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 37,
+      "line": 43,
       "section": "Salus Crisis Communications Planning Standard / C07 Public and media communication",
       "text_sha256": "8fc0a126ee63990facb228629aec2050c8e92fddd2603280ef5e218b05ce640c",
       "decision_ids": []
@@ -4458,7 +4482,7 @@
     {
       "id": "REQ-c90bf8b2c11679eb1bd52cfc",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 39,
+      "line": 45,
       "section": "Salus Crisis Communications Planning Standard / C08 Listening correction and rumor triage",
       "text_sha256": "2dca100878bc9748525f4197911cec6db9071fb3cb1c9b5e1fb1a0ec2a78f035",
       "decision_ids": []
@@ -4466,7 +4490,7 @@
     {
       "id": "REQ-fd49b824fa7c6838606e4a47",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 41,
+      "line": 47,
       "section": "Salus Crisis Communications Planning Standard / C08 Listening correction and rumor triage",
       "text_sha256": "51ebe64088ce4ff9d71aaca29c3d7db9111da0661b3e26a28201ab9948983b13",
       "decision_ids": []
@@ -4474,7 +4498,7 @@
     {
       "id": "REQ-644d7827dc173fd641b11716",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 43,
+      "line": 49,
       "section": "Salus Crisis Communications Planning Standard / C09 Sensitive events and applicable duties",
       "text_sha256": "91c275a64bfb337f345b4314d39cc381be46fd49b1de5f8f6201957db9fa8d10",
       "decision_ids": []
@@ -4482,7 +4506,7 @@
     {
       "id": "REQ-c692f5a4a4162e9957fb7d29",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 45,
+      "line": 51,
       "section": "Salus Crisis Communications Planning Standard / C09 Sensitive events and applicable duties",
       "text_sha256": "5383dce267e840a2b617d8ed1bf7afd2bc03c23926efe379c5aeec8cb2273acd",
       "decision_ids": []
@@ -4490,7 +4514,7 @@
     {
       "id": "REQ-c32804b4cc4ee094211577b1",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 47,
+      "line": 53,
       "section": "Salus Crisis Communications Planning Standard / C10 Care recovery and ending the update cycle",
       "text_sha256": "a3867b64790686ddc64ec767f7eb404b40dfb40dbb6cc5ac437061f95e19abe9",
       "decision_ids": []
@@ -4498,7 +4522,7 @@
     {
       "id": "REQ-992b69d99ba12fe3beeb47b9",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 49,
+      "line": 55,
       "section": "Salus Crisis Communications Planning Standard / C10 Care recovery and ending the update cycle",
       "text_sha256": "62a919082155d87798b6fd0b948b2c0fbc2c3b6dcb46d8576adf9d56a82eba88",
       "decision_ids": []
@@ -4506,7 +4530,7 @@
     {
       "id": "REQ-a73f4ea710cadcd96fc0a3ed",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 51,
+      "line": 57,
       "section": "Salus Crisis Communications Planning Standard / C11 Reusable plan tools",
       "text_sha256": "e3e49104325f9d7a936905ba2e572dd9ec77c412db0e52ab1537f8a3586d3179",
       "decision_ids": []
@@ -4514,7 +4538,7 @@
     {
       "id": "REQ-23d0d081be11dec70c47da57",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 53,
+      "line": 59,
       "section": "Salus Crisis Communications Planning Standard / C11 Reusable plan tools",
       "text_sha256": "7d925ead6c68a6cdd9df9548c5edb9f66738f991bba75b4294a3d1710089c092",
       "decision_ids": []
@@ -4522,7 +4546,7 @@
     {
       "id": "REQ-1dbc21cb9000ebfbc1c8d25b",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 55,
+      "line": 61,
       "section": "Salus Crisis Communications Planning Standard / C12 Test acceptance and maintenance",
       "text_sha256": "9260712b4efb4a597c48b552220bb0b6bf7c6aebdf5dc4eff41c712bd4afd9d6",
       "decision_ids": []
@@ -4530,7 +4554,7 @@
     {
       "id": "REQ-c7d2d3049c40ead70648f279",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 57,
+      "line": 63,
       "section": "Salus Crisis Communications Planning Standard / C12 Test acceptance and maintenance",
       "text_sha256": "a848018ef09be5cd5c7e0149dbac7d4b7b028cf4df72c8fdf195b2553eba2651",
       "decision_ids": []
@@ -4538,7 +4562,7 @@
     {
       "id": "REQ-976029bf14f0cac1a5cabaef",
       "source": "SALUS_CRISIS_COMMUNICATIONS_PLANNING_STANDARD.md",
-      "line": 59,
+      "line": 65,
       "section": "Salus Crisis Communications Planning Standard / C12 Test acceptance and maintenance",
       "text_sha256": "11898d764c84222a75b604fc8c0fa92c7097325882d819c8ee1125cdb99acb93",
       "decision_ids": []
@@ -5019,11 +5043,11 @@
       ]
     },
     {
-      "id": "REQ-2b9e5ab16ec4f70c79cd8ef1",
+      "id": "REQ-66c4b885e8f388eff684bd2b",
       "source": "SALUS_DECISION_REGISTER.md",
       "line": 5,
       "section": "Salus Solutions — Decision Register / SAL-D152 — Enterprise planning standard and crisis communications module",
-      "text_sha256": "f2bbb7dc9a5b22da2e7cccf3acdd9e762d56146c6f4a5bb8561c798bc92011ff",
+      "text_sha256": "11d3bca110f3e792bb6766067bfd79b3b7d5be673fe7583b34e880ea65ac5721",
       "decision_ids": []
     },
     {
@@ -13560,9 +13584,17 @@
       "decision_ids": []
     },
     {
-      "id": "REQ-e6a46496c67bf74962b5447c",
+      "id": "REQ-6837fbf28436df52a8b9efe8",
       "source": "SALUS_PLANNING_STANDARD.md",
       "line": 35,
+      "section": "Salus Planning Standard / P06 Make the steps feasible",
+      "text_sha256": "8bdbb7fc32f213b8a5cb513fa716aceec8674e941e9dd099d7c34301aa4fc888",
+      "decision_ids": []
+    },
+    {
+      "id": "REQ-e6a46496c67bf74962b5447c",
+      "source": "SALUS_PLANNING_STANDARD.md",
+      "line": 37,
       "section": "Salus Planning Standard / P07 Use third-grade plain language",
       "text_sha256": "34af9945023d8fbbdb89d3762834c2c3f1b676072b8124ee9680b610fecf0b0a",
       "decision_ids": []
@@ -13570,7 +13602,7 @@
     {
       "id": "REQ-fed659f24ae10814831aba6b",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 37,
+      "line": 39,
       "section": "Salus Planning Standard / P07 Use third-grade plain language",
       "text_sha256": "e8dc109075c7f3b6c0a616967db0184349a54c8167dba6f7d92438f9680c1c7a",
       "decision_ids": []
@@ -13578,7 +13610,7 @@
     {
       "id": "REQ-a3436d2a2b3276d076e17c99",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 39,
+      "line": 41,
       "section": "Salus Planning Standard / P07 Use third-grade plain language",
       "text_sha256": "a93f3816e0bb50f5ddded32c8d00d1aa4f7774878b7a796e8edd8c186ac9dda4",
       "decision_ids": []
@@ -13586,7 +13618,7 @@
     {
       "id": "REQ-c7f08b7b5bff099caadb97dc",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 41,
+      "line": 43,
       "section": "Salus Planning Standard / P08 Design for affected people and failure",
       "text_sha256": "aaf10876f5409aaff75db21f5b47511df9a525db746aa375ed6cdfb39163cac7",
       "decision_ids": []
@@ -13594,7 +13626,7 @@
     {
       "id": "REQ-8057f3f78e900e6b54e6df02",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 43,
+      "line": 45,
       "section": "Salus Planning Standard / P08 Design for affected people and failure",
       "text_sha256": "f632f9a4948206e4d893d2b710241dbe6f9a25b3ebdbb7dee321d263d4d90782",
       "decision_ids": []
@@ -13602,7 +13634,7 @@
     {
       "id": "REQ-c1da4c945315cf8ce75f3cb1",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 45,
+      "line": 47,
       "section": "Salus Planning Standard / P09 Review coherent revisions",
       "text_sha256": "fbb957390270d5bc61e65d16bdda231d8b2636753a1f92e2767c178910392fd1",
       "decision_ids": []
@@ -13610,7 +13642,7 @@
     {
       "id": "REQ-d7028a5d4622fade2226b1cb",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 47,
+      "line": 49,
       "section": "Salus Planning Standard / P09 Review coherent revisions",
       "text_sha256": "db51d744043447858ee65492b405d98bc6c63310228cb75fcc898393d41909a0",
       "decision_ids": []
@@ -13618,7 +13650,7 @@
     {
       "id": "REQ-ba3748e9f2e6cb349d2dead1",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 49,
+      "line": 51,
       "section": "Salus Planning Standard / P10 Verify exact documents",
       "text_sha256": "1d3612e54edaba4ee1bf022e62fd0a1da7cd45a913e6c9fdc5a10befe545ccb8",
       "decision_ids": []
@@ -13626,7 +13658,7 @@
     {
       "id": "REQ-0a5564d38741b3ce2273aa34",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 51,
+      "line": 53,
       "section": "Salus Planning Standard / P10 Verify exact documents",
       "text_sha256": "869d8f3bdca600580ea8a33df37ad6976dd6b27d7206c10c3a1efd8aeafa14e5",
       "decision_ids": []
@@ -13634,7 +13666,7 @@
     {
       "id": "REQ-c313b94dde5066e06d9780b3",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 53,
+      "line": 55,
       "section": "Salus Planning Standard / P11 Set measures and test outcomes",
       "text_sha256": "53d7632c62acdc2a602f4a97649e1d180c9c0054bbf738479d9c58127595f065",
       "decision_ids": []
@@ -13642,7 +13674,7 @@
     {
       "id": "REQ-3fc4f3853b2802ec935e35d4",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 55,
+      "line": 57,
       "section": "Salus Planning Standard / P11 Set measures and test outcomes",
       "text_sha256": "b2bb1297eaa7d211491cd7849ba46d3e9f9928437ab9a795e57c1be3c24ba222",
       "decision_ids": []
@@ -13650,7 +13682,7 @@
     {
       "id": "REQ-9be65857765a3e0978057b60",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 57,
+      "line": 59,
       "section": "Salus Planning Standard / P11 Set measures and test outcomes",
       "text_sha256": "2573a1db138f77e3b5c9dd3693e0bce6326782b946eb5497a9d0d913a2919b29",
       "decision_ids": []
@@ -13658,7 +13690,7 @@
     {
       "id": "REQ-490772f3f52fdc7ee54e46d8",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 59,
+      "line": 61,
       "section": "Salus Planning Standard / P12 Approve and maintain controlled plans",
       "text_sha256": "5d410a4ab1a74f53f375dea52fd580b1baad32d691a28391e1d2629ae547725e",
       "decision_ids": []
@@ -13666,7 +13698,7 @@
     {
       "id": "REQ-02ab08346723e6679cd3bf38",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 61,
+      "line": 63,
       "section": "Salus Planning Standard / P12 Approve and maintain controlled plans",
       "text_sha256": "f3253e739ad454852f6ebdf8dd172e2e00a9fc04a2aabc8ebc28796b2c5aa02a",
       "decision_ids": []
@@ -13674,7 +13706,7 @@
     {
       "id": "REQ-65c777d4d30ecfa72c247495",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 63,
+      "line": 65,
       "section": "Salus Planning Standard / P12 Approve and maintain controlled plans",
       "text_sha256": "69f3aa9a6b5ba51c067fcac97be54011b2ff9480a81dca87d46395c74d146e3c",
       "decision_ids": []
@@ -13682,7 +13714,7 @@
     {
       "id": "REQ-0247ff562e94f4f545920af3",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 65,
+      "line": 67,
       "section": "Salus Planning Standard / Crisis communications module and evidence record",
       "text_sha256": "21f002cbeb3bcc4e34d9eb9d8cd5886349c3fafb196e550e857600f83dc17056",
       "decision_ids": []
@@ -13690,7 +13722,7 @@
     {
       "id": "REQ-926479bf7226c76240cafe93",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 67,
+      "line": 69,
       "section": "Salus Planning Standard / Crisis communications module and evidence record",
       "text_sha256": "bdc2ea46d0a0b4391e7f1ce81fa02653f6d6a614e1574156ed055f0648761785",
       "decision_ids": []
@@ -13698,7 +13730,7 @@
     {
       "id": "REQ-50b8b304a0f7636173c33bc3",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 69,
+      "line": 71,
       "section": "Salus Planning Standard / Continuous authorized work on every Salus task",
       "text_sha256": "035c2ca363eb05c6173469fc0dc4e83f02d0f080d88bd90daa110adc653c637b",
       "decision_ids": []
@@ -13706,7 +13738,7 @@
     {
       "id": "REQ-7d7afb59ed2ddc5da2bc5d3c",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 71,
+      "line": 73,
       "section": "Salus Planning Standard / Continuous authorized work on every Salus task",
       "text_sha256": "66e8bfffc3a9086c3e1499a4a86419c66ea58137801c13405852fc82936c97b7",
       "decision_ids": [
@@ -13716,7 +13748,7 @@
     {
       "id": "REQ-662d2992ce059ea0d2d1d4e9",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 73,
+      "line": 75,
       "section": "Salus Planning Standard / Continuous authorized work on every Salus task",
       "text_sha256": "894a60b615ac23f97771ed915c991ed55b866da7f58867cc5482481452716cd0",
       "decision_ids": []
@@ -13724,7 +13756,7 @@
     {
       "id": "REQ-1178a65d3dc95240d7665e3d",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 75,
+      "line": 77,
       "section": "Salus Planning Standard / Research and authority basis",
       "text_sha256": "f826ff78b570c7e3c647870034c1e8d187670ee68c6fe8f6512d83d54546017c",
       "decision_ids": []
@@ -13732,7 +13764,7 @@
     {
       "id": "REQ-9fe079d947337282decece79",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 77,
+      "line": 79,
       "section": "Salus Planning Standard / Research and authority basis",
       "text_sha256": "f5dab76d8c60c371f52857e8d94e5914b3aba84c720e3ec513fe107f535bb98d",
       "decision_ids": []
@@ -13740,7 +13772,7 @@
     {
       "id": "REQ-0a0b3851d7c0d3699d0531a9",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 79,
+      "line": 81,
       "section": "Salus Planning Standard / Research and authority basis",
       "text_sha256": "02f720f50af3c763ecd9abe2a5e67219384eb5bcdce76cce61c59780be9da3d5",
       "decision_ids": []
@@ -13748,7 +13780,7 @@
     {
       "id": "REQ-68ecdc6b262131dc780be383",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 80,
+      "line": 82,
       "section": "Salus Planning Standard / Research and authority basis",
       "text_sha256": "59127f82483ade87029a7a220d06cfcf2667b44baf204c3cd034d29b93d4d223",
       "decision_ids": []
@@ -13756,7 +13788,7 @@
     {
       "id": "REQ-01a9cf2ab1a98d8241892d49",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 81,
+      "line": 83,
       "section": "Salus Planning Standard / Research and authority basis",
       "text_sha256": "4a9fa287ab14708ae41b27d46ed94103ade4e4a1fd6e1e2cf4e0dd41410b29e2",
       "decision_ids": []
@@ -13764,7 +13796,7 @@
     {
       "id": "REQ-26223de8dc2dc5ab94e758e0",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 82,
+      "line": 84,
       "section": "Salus Planning Standard / Research and authority basis",
       "text_sha256": "f11f0d39b38d37d0d2bab8492d85d196cb6b0479bf385bf7d826c54f5714aaa0",
       "decision_ids": []
@@ -13772,7 +13804,7 @@
     {
       "id": "REQ-629eb9dfcc0a8d93cc9794cb",
       "source": "SALUS_PLANNING_STANDARD.md",
-      "line": 84,
+      "line": 86,
       "section": "Salus Planning Standard / Research and authority basis",
       "text_sha256": "75a2fb89dcdc0bcda121cc97c7227f6347cb7035c5543b362ca2ee895f8a9f40",
       "decision_ids": []
@@ -14119,21 +14151,21 @@
       ]
     },
     {
-      "id": "REQ-8ceb4b0db2944aa00ef1ae8a",
+      "id": "REQ-72de7881a668df3946b8ee6d",
       "source": "SALUS_PROGRAM_CHARTER.md",
       "line": 5,
       "section": "Salus Solutions — Master Program Charter / Enterprise planning and continuous authorized work [SAL-D152 and SAL-D153]",
-      "text_sha256": "5359e96c0bfa90b8f2d165e25381329c62113b135b932dd31613a433c641e954",
+      "text_sha256": "d0a6d33333118419d2160c04a542fedc2d6fd96b68effe55a2869db855a0fc8c",
       "decision_ids": [
         "SAL-D152"
       ]
     },
     {
-      "id": "REQ-6509894ef7dba2209e565e65",
+      "id": "REQ-0847376e32040c2196d075a7",
       "source": "SALUS_PROGRAM_CHARTER.md",
       "line": 7,
       "section": "Salus Solutions — Master Program Charter / Enterprise planning and continuous authorized work [SAL-D152 and SAL-D153]",
-      "text_sha256": "2d323177aa0cd2706275e243ab7c7ee1c6c406ffd92604231d730e6c35e11547",
+      "text_sha256": "23746dc57e2035ab9cfb329e65cc65bdcf430a44bd70d58b238938dcdde8dab8",
       "decision_ids": []
     },
     {
@@ -35560,5 +35592,5 @@
   ],
   "coverage_rule": "Every nonblank line; no automated applicability or truth claim",
   "newline_rule": "UTF-8, LF canonical source fingerprints",
-  "register_sha256": "b2e263303e356efa79013722a13f8197bf715106e8ec2a89b564c6dafe93ecd7"
+  "register_sha256": "c0dd23d0bab1b893df0574674e10e1ce9d2339da4d7999f6ce8f0f6561880c77"
 }
