@@ -1,5 +1,10 @@
 # Salus Solutions — Approved Artifact Register
 
+## 27 November 2026 — Single integrated assessment report candidate
+
+The owner authorized one integrated SalCAPA assessment report and the corresponding Charter standard. SAL-D154 / SALUS-ASSESSMENT-SINGLE-REPORT-001 supersedes four-file packaging only; all four analytical functions, six SalTHIRA steps, five mission areas, required screens, evidence/qualification, review and issue gates remain. The implementation is a local candidate based on governed revision d132bfac54918a3c2d50bd013291f53fec74a257. It contains no Member records. Public publication, exact-head promotion, template/generator migration, production and acceptance are separate. The private report restructuring does not resume paused research, enable a reader or permit sending. No enterprise implementation or deployment is claimed.
+
+
 | Artifact | Role | Authority status |
 |---|---|---|
 | SALUS-ASSESSMENT-REVIEW-STOP-001 / SAL-D153 in `SALUS_INTEGRATED_ASSESSMENT_PRODUCTION_AND_REPORT_STRUCTURE_STANDARD.md` and its Charter, lessons, clock, startup and agent/runbook crosswalk | Mandatory diminishing-returns checkpoint, preserved review baseline and open gates, Protected Member feedback wait, consolidated authorized resumption and affected-work verification | Owner-authorized direction, 23 November 2026. This exact repository implementation remains a candidate pending governed promotion. No completed research, qualification, report acceptance, automatic pause enforcement, Member report revision, sending, reader activation, spending or deployment is implied. |

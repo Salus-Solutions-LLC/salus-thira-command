@@ -1,5 +1,10 @@
 # Salus Solutions — Current Handoff
 
+## 27 November 2026 — Single integrated assessment report candidate
+
+The owner authorized one integrated SalCAPA assessment report and the corresponding Charter standard. SAL-D154 / SALUS-ASSESSMENT-SINGLE-REPORT-001 supersedes four-file packaging only; all four analytical functions, six SalTHIRA steps, five mission areas, required screens, evidence/qualification, review and issue gates remain. The implementation is a local candidate based on governed revision d132bfac54918a3c2d50bd013291f53fec74a257. It contains no Member records. Public publication, exact-head promotion, template/generator migration, production and acceptance are separate. The private report restructuring does not resume paused research, enable a reader or permit sending. No enterprise implementation or deployment is claimed.
+
+
 ## 23 November 2026 — Assessment review stopping and feedback requirement candidate
 
 The owner directed making the diminishing-returns lesson a Charter requirement and incorporating it into the redesigned assessment process. SAL-D153 / SALUS-ASSESSMENT-REVIEW-STOP-001 adds a mandatory consolidated checkpoint, a bounded review-wait account, preservation of exact verified work and open items, and dependency-based resumption after consolidated authorized Protected Member feedback. Repetitive checks, report regeneration and version increments require a material reason. Existing source qualification, mandatory reviews, all-page acceptance, the original 24-hour clock and separate human issue/protected-action authority remain in force. Waiting does not establish completion or waive a gate.
