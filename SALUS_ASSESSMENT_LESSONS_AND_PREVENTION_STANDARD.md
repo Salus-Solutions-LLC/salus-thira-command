@@ -56,3 +56,7 @@ This standard adds prevention requirements and a governed learning account. It g
 
 Research gaps, absent originals, unavailable independent readers and historical chronology cannot be closed by a checkbox. Continue authorized alternatives, prepare concrete corrective work and report the remaining dependency honestly. The assistant owns routine assurance; substantive human decisions remain with their competent authority.
 
+
+## L26 Integrated delivery without analytical duplication
+
+Apply SAL-D154: one integrated SalCAPA report, distinct SalINTEL/SalTHIRA/SalOPS functions, one home for each finding and one source/financial account. Retain detailed internal history and a relocation account; no concatenation, deletion of unique substance or waiver of qualification. Preserve the review-stop resource boundary and separately authorized publication/issue.
